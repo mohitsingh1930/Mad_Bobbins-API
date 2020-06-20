@@ -17,7 +17,7 @@ var schema = mongoose.Schema({
 	dates: {
 		order: {type: Date, required: true, default: new Date()},
 		pickup: {type: Date, required: true, default: new Date()},
-		delivery: {type: Date, required: true, default: new Date()}
+		delivery: {type: Date}
 	},
 	arrangement_id: {
 		type: mongoose.ObjectId,

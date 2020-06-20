@@ -42,13 +42,9 @@ var schema = new mongoose.Schema({
 	date_joined: {type: Date, default: new Date()},
 	date_left: {type: Date, default: new Date()},
 	Wallets: {},
-	active: Boolean
+	active: {type: Boolean, required: true, default: true}
 })
 
 let tailor = mongoose.model("tailors", schema);
-
-tailor.findById("5eabf797d5de0e053bc8d64c", (err, res) => {
-	console.log(res);
-})
 
 module.exports = tailor

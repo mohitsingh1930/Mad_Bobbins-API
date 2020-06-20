@@ -37,7 +37,7 @@ const upload = multer(
 
 // scope: tailor
 
-router.get("/tailor/findByStatus/", (req, res) => {
+router.get("/tailor/status/", (req, res) => {
 
 	if(["pending", "picked", "assigned", "completed", "out", "delievered"].includes(req.body.status)) {
 
@@ -92,7 +92,378 @@ router.get("/tailor/findByStatus/", (req, res) => {
 })
 
 
-// scope: pickup
+router.get("/tailor/pendingDetails", (req, res) => {
+
+	let {tailorId} = req.query;
+
+	order.aggregate([
+		{
+			$match: {
+				"active.status": 1,
+				"status": "assigned",
+				"tailor_id": mongoose.Types.ObjectId(tailorId)
+				// "order_id": "$order_id",
+				// $or: [ {"status": "pending"}, {$and: [ {"status": "picked"}, {"movements.picked.checked": false}, {"pickup_id": req.query.id} ]} ],
+			}
+		},
+		{
+			$group: {
+				_id: {
+					"order_id": "$order_id",
+					"temp_id": "$temp_id",
+					"status": "$status",
+					"dates": "$dates",
+					"assigned": "$movements.assigned"
+				},
+				product: {
+					$push: {
+						id: "$product.id",
+						orderInstanceId: "$_id"
+					}
+				}
+			}
+		},
+		{
+			$lookup: {
+				from: "temporary_users",
+				foreignField: "_id",
+				localField: "_id.temp_id",
+				as: "temp_user"
+			}
+		},
+		{
+			$unwind: "$product"
+		},
+		{
+			$lookup: {
+				from: "products",
+				foreignField: "_id",
+				localField: "product.id",
+				as: "products"
+			}
+		},
+		{
+			$group: {
+				_id: {
+					"order_id": "$_id.order_id",
+					"dates": "$_id.dates",
+					"status": "$_id.status",
+					"temp_user": {$arrayElemAt: ["$temp_user", 0]},
+					"assigned": "$_id.assigned"
+				},
+				"products": {
+					$push: {
+						"id": "$product.id",
+						"name": {$arrayElemAt: ["$products.name", 0]},
+						"orderInstanceId": "$product.orderInstanceId"
+					}
+				}
+			}
+		},
+		{
+			$sort: {"_id.dates.pickup": -1}
+		}
+	]).exec()
+	.then((resolve) => {
+
+		// console.log("Result:", resolve);
+
+		resolve = resolve.map(order => new Object({
+			orderId: order._id.order_id,
+			arrivalDate: dateFns.format(new Date(order._id.assigned.date), "dd-MM-yyyy"),
+			status: order._id.status,
+			// user: {
+			userId: order._id.temp_user._id,
+			userName: order._id.temp_user.name,
+			// userAge: order._id.temp_user.age,
+			// userPhone_no: order._id.temp_user.contact.phone_no,
+			// },
+			products: order.products
+		}))
+
+		console.log("Result:", resolve)
+
+		res.status(200).json({
+			result: resolve
+		})
+
+	})
+	.catch((err) => {
+
+		console.log("Error:", err);
+		if(typeof err !== "string")
+			res.status(500).json(handler.internalServerError)
+
+	})
+
+})
+
+
+// response: orderId, pickupDate, tailor: [name, address, phone_no]
+router.get("/pickup/picked", (req, res) => {
+
+	let pickupId = req.query.pickupId;
+
+	if(!pickupId) {
+		res.status(406).json({
+			error_msg: "pickupId is missing"
+		})
+	}
+
+	order.aggregate([
+		{
+			$match: {
+				"active.status": 1,
+				"pickup_id": mongoose.Types.ObjectId(pickupId),
+				"status": "picked"
+			}
+		},
+		{
+			$group: {
+				_id: {
+					"order_id": "$order_id",
+					"tailor_id": "$tailor_id",
+					"status": "$status",
+					"dates": "$dates"
+				}
+			}
+		},
+		{
+			$lookup: {
+				from: "tailors",
+				foreignField: "_id",
+				localField: "_id.tailor_id",
+				as: "tailor"
+			}
+		},
+		// {
+		// 	$group: {
+		// 		_id: {
+		// 			"order_id": "$_id.order_id",
+		// 			"dates": "$_id.dates",
+		// 			"status": "$_id.status",
+		// 			"tailor": {$arrayElemAt: ["$tailor", 0]}
+		// 		}
+		// 	}
+		// },
+		{
+			$sort: {"_id.dates.pickup": -1}
+		}
+	]).exec()
+	.then(resolve => {
+
+		console.log(resolve)
+
+		res.status(200).json({
+			result: resolve.map(el => new Object({
+				orderId: el._id.order_id,
+				// pickupDate: dateFns.format(new Date(el._id.dates.pickup), "dd-MM-yyyy"),
+				// tailor: {
+				tailorName: el.tailor[0].name,
+				tailorAddress: el.tailor[0].contact.address.text,
+				tailorPhone_no: el.tailor[0].contact.phone_no
+				// }
+			}))
+		})
+
+	})
+	.catch(err => {
+
+		console.log(err)
+		res.status(500).json(handler.internalServerError)
+
+	})
+
+})
+
+
+// response: orderId, pickupDate, tailor: [name, address, phone_no], deliveryDate
+router.get("/pickup/assigned" ,(req, res) => {
+
+	let pickupId = req.query.pickupId;
+
+	if(!pickupId) {
+		res.status(406).json({
+			error_msg: "pickupId is missing"
+		})
+	}
+
+	order.aggregate([
+		{
+			$match: {
+				"active.status": 1,
+				"pickup_id": mongoose.Types.ObjectId(pickupId),
+				"status": "assigned"
+			}
+		},
+		{
+			$group: {
+				_id: {
+					"order_id": "$order_id",
+					"tailor_id": "$tailor_id",
+					"temp_id": "$temp_id",
+					"status": "$status",
+					"dates": "$dates"
+				}
+			}
+		},
+		{
+			$lookup: {
+				from: "tailors",
+				foreignField: "_id",
+				localField: "_id.tailor_id",
+				as: "tailor"
+			}
+		},
+		{
+			$lookup: {
+				from: "temporary_users",
+				foreignField: "_id",
+				localField: "_id.temp_id",
+				as: "temp_user"
+			}
+		},
+		// {
+		// 	$group: {
+		// 		_id: {
+		// 			"order_id": "$_id.order_id",
+		// 			"dates": "$_id.dates",
+		// 			"status": "$_id.status",
+		// 			"tailor": {$arrayElemAt: ["$tailor", 0]},
+		// 			"temp_user": {$arrayElemAt: ["$temp_user", 0]}
+		// 		}
+		// 	}
+		// },
+		{
+			$sort: {"_id.dates.delivery": -1}
+		}
+	]).exec()
+	.then(resolve => {
+
+		console.log(resolve)
+
+		res.status(200).json({
+			result: resolve.map(el => new Object({
+				orderId: el._id.order_id,
+				// pickupDate: dateFns.format(new Date(el.dates.pickup), "dd-MM-yyyy"),
+				deliveryDate: dateFns.format(dateFns.addDays(new Date(el._id.dates.pickup), el.tailor[0].max_days_to_complete), "dd-MM-yyyy"),
+				// tailor: {
+				tailorName: el.tailor[0].name,
+				customerName: el.temp_user[0].name
+				// }
+			}))
+		})
+
+	})
+	.catch(err => {
+
+		console.log(err)
+		res.status(500).json(handler.internalServerError)
+
+	})
+
+})
+
+
+router.put("/tailor/update/completed", (req, res) => {
+
+	console.log(req.body)
+
+	order.updateMany(
+
+		// TODO: Save this for future update, pickup_id already assgined in /taken route
+		// {
+		// 	"active.status": 1,
+		// 	"order_id": req.query.order_id,
+		// 	"status": "picked",
+		// 	"movements.picked.checked": false
+		// },
+		// {
+		// 	$set: {"movements.picked.date": Date.now(), "movements.picked.checked": true}
+		// }
+
+		{
+			"active.status": 1,
+			"order_id": req.body.orderId,
+		},
+		{
+			$set: {status: "picked", "pickup_id": mongoose.Types.ObjectId(req.body.pickupId), "movements.picked.date": new Date(), "movements.picked.checked": true}
+		},
+		function(err, result) {
+
+			if(err) {
+
+				console.log("ERROR:::\n", err)
+				res.status(500).json(handler.internalServerError)
+
+			}
+			else {
+
+				console.log("Result>>\n", result)
+
+				if(!result.n) {
+					return res.status(404).json({
+						error_msg: "Not Found"
+					})
+				}
+
+				res.status(200).json({
+					result: result
+				})
+
+			}
+
+	})
+
+})
+
+
+router.put("/pickup/update/delievered", (req, res) => {
+
+	console.log(req.body.pickupId, req.body.orderId)
+
+	order.update(
+		{
+			status: "picked",
+			order_id: req.body.orderId,
+			pickup_id: req.body.pickupId,
+			"movements.picked.checked": true
+		},
+		{
+			$set: {"status": "assigned", "movements.assigned": {"date": new Date(), "checked": true}}
+		},
+		function (err, result) {
+
+			if(err) {
+				console.log("ERROR:::\n", err)
+				res.status(500).json(handler.internalServerError)
+			}
+			else {
+
+				console.log("Result>>\n", result)
+
+				if(!result.n) {
+					return res.status(404).json({
+						error_msg: "Not Found"
+					})
+				}
+
+				res.status(200).json({
+					result: result
+				})
+			}
+
+		}
+	)
+
+})
+
+
+
+
+
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<SCOPE: pickup
 
 router.get("/pickup/measurements", (req, res) => {
 
@@ -290,6 +661,7 @@ router.get("/pickup/pending", (req, res) => {
 })
 
 
+// response: orderId, status, pickupDate, user: [id, name, address, phone_no, age], products: [id, name, orderInstanceId]
 router.get("/pickup/pending/details", (req, res) => {
 
 	order.aggregate([
@@ -430,16 +802,16 @@ router.get("/pickup/picked", (req, res) => {
 				as: "tailor"
 			}
 		},
-		{
-			$group: {
-				_id: {
-					"order_id": "$_id.order_id",
-					"dates": "$_id.dates",
-					"status": "$_id.status",
-					"tailor": {$arrayElemAt: ["$tailor", 0]}
-				}
-			}
-		},
+		// {
+		// 	$group: {
+		// 		_id: {
+		// 			"order_id": "$_id.order_id",
+		// 			"dates": "$_id.dates",
+		// 			"status": "$_id.status",
+		// 			"tailor": {$arrayElemAt: ["$tailor", 0]}
+		// 		}
+		// 	}
+		// },
 		{
 			$sort: {"_id.dates.pickup": -1}
 		}
@@ -451,11 +823,11 @@ router.get("/pickup/picked", (req, res) => {
 		res.status(200).json({
 			result: resolve.map(el => new Object({
 				orderId: el._id.order_id,
-				// pickupDate: dateFns.format(new Date(el.dates.pickup), "dd-MM-yyyy"),
+				// pickupDate: dateFns.format(new Date(el._id.dates.pickup), "dd-MM-yyyy"),
 				// tailor: {
-				tailorName: el._id.tailor.name,
-				tailorAddress: el._id.tailor.contact.address.text,
-				tailorPhone_no: el._id.tailor.contact.phone_no
+				tailorName: el.tailor[0].name,
+				tailorAddress: el.tailor[0].contact.address.text,
+				tailorPhone_no: el.tailor[0].contact.phone_no
 				// }
 			}))
 		})
@@ -486,7 +858,7 @@ router.get("/pickup/assigned" ,(req, res) => {
 		{
 			$match: {
 				"active.status": 1,
-				"pickup_id": pickupId,
+				"pickup_id": mongoose.Types.ObjectId(pickupId),
 				"status": "assigned"
 			}
 		},
@@ -495,6 +867,7 @@ router.get("/pickup/assigned" ,(req, res) => {
 				_id: {
 					"order_id": "$order_id",
 					"tailor_id": "$tailor_id",
+					"temp_id": "$temp_id",
 					"status": "$status",
 					"dates": "$dates"
 				}
@@ -509,31 +882,41 @@ router.get("/pickup/assigned" ,(req, res) => {
 			}
 		},
 		{
-			$group: {
-				_id: {
-					"order_id": "$_id.order_id",
-					"dates": "$_id.dates",
-					"status": "$_id.status",
-					"tailor": {$arrayElemAt: ["$tailor", 0]}
-				}
+			$lookup: {
+				from: "temporary_users",
+				foreignField: "_id",
+				localField: "_id.temp_id",
+				as: "temp_user"
 			}
 		},
+		// {
+		// 	$group: {
+		// 		_id: {
+		// 			"order_id": "$_id.order_id",
+		// 			"dates": "$_id.dates",
+		// 			"status": "$_id.status",
+		// 			"tailor": {$arrayElemAt: ["$tailor", 0]},
+		// 			"temp_user": {$arrayElemAt: ["$temp_user", 0]}
+		// 		}
+		// 	}
+		// },
 		{
-			$sort: {"_id.dates.pickup": -1}
+			$sort: {"_id.dates.delivery": -1}
 		}
 	]).exec()
 	.then(resolve => {
 
+		console.log(resolve)
+
 		res.status(200).json({
 			result: resolve.map(el => new Object({
-				order_id: el._id.order_id,
-				pickupDate: dateFns.format(new Date(el.dates.pickup), "dd-MM-yyyy"),
-				deliveryDate: dateFns.format(dateFns.addDays(new Date(el.dates.pickup), el.tailor.max_days_to_complete), "dd-MM-yyyy"),
-				tailor: {
-					name: el._id.tailor.name,
-					address: el._id.tailor.contact.address.text,
-					phone_no: el._id.tailor.contact.phone_no
-				}
+				orderId: el._id.order_id,
+				// pickupDate: dateFns.format(new Date(el.dates.pickup), "dd-MM-yyyy"),
+				deliveryDate: dateFns.format(dateFns.addDays(new Date(el._id.dates.pickup), el.tailor[0].max_days_to_complete), "dd-MM-yyyy"),
+				// tailor: {
+				tailorName: el.tailor[0].name,
+				customerName: el.temp_user[0].name
+				// }
 			}))
 		})
 
@@ -700,6 +1083,13 @@ router.put("/pickup/update/picked", (req, res) => {
 			else {
 
 				console.log("Result>>\n", result)
+
+				if(!result.n) {
+					return res.status(404).json({
+						error_msg: "Not Found"
+					})
+				}
+
 				res.status(200).json({
 					result: result
 				})
@@ -713,11 +1103,13 @@ router.put("/pickup/update/picked", (req, res) => {
 
 router.put("/pickup/update/delievered", (req, res) => {
 
+	console.log(req.body.pickupId, req.body.orderId)
+
 	order.update(
 		{
 			status: "picked",
-			order_id: req.query.order_id,
-			pickup_id: req.query.pickup_id,
+			order_id: req.body.orderId,
+			pickup_id: req.body.pickupId,
 			"movements.picked.checked": true
 		},
 		{
@@ -727,12 +1119,19 @@ router.put("/pickup/update/delievered", (req, res) => {
 
 			if(err) {
 				console.log("ERROR:::\n", err)
-				res.json(handler.internalServerError)
+				res.status(500).json(handler.internalServerError)
 			}
 			else {
+
 				console.log("Result>>\n", result)
-				res.json({
-					status: 200,
+
+				if(!result.n) {
+					return res.status(404).json({
+						error_msg: "Not Found"
+					})
+				}
+
+				res.status(200).json({
 					result: result
 				})
 			}
@@ -743,7 +1142,10 @@ router.put("/pickup/update/delievered", (req, res) => {
 })
 
 
-// scope: delievery
+
+
+
+// <<<<<<<<<<<<<<<<<<<<<<<<<<<<SCOPE: delivery
 
 router.get("/delievery/pending", (req, res) => {
 

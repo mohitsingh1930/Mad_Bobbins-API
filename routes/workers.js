@@ -8,12 +8,8 @@ var tailor = require("../models/tailors")
 var delivery_client = require("../models/movers_delievery")
 var pickup_client = require("../models/movers_pickup")
 
-var handler = require("../errorHandlers")
 const { product } = require("../models/products")
-
-
-
-// mongoose.connect(handler.defaults.DB_CONNECTION_STRING, { useNewUrlParser: true})
+var handler = require("../errorHandlers")
 
 
 
@@ -94,7 +90,9 @@ router.get("/details", (req, res) => {
 		})
 	}
 
-	worker.find({"contact.email": email, "active": 1}).exec()
+	console.log(worker, email, clientType)
+
+	worker.find({"contact.email": email}).exec()
 	.then(resolve => {
 
 		if(resolve.length === 0) {

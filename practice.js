@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
-// mongoose.connect("mongodb://localhost/ARLORS", {useNewUrlParser: true})
+mongoose.connect(require("./errorHandlers").defaults.DB_CONNECTION_STRING, {useNewUrlParser: true})
 
-mongoose.connect("mongodb://localhost/practice", {useNewUrlParser: true})
+// mongoose.connect("mongodb://localhost/practice", {useNewUrlParser: true})
 
 
 
@@ -96,7 +96,8 @@ var schema = new mongoose.Schema({
 var model = mongoose.model("test", schema);
 
 
-
+require("./models/tailors").find({"contact.email": "rajtailors@arlors.com", "active": 1}).exec()
+.then(resolve => console.log(resolve))
 
 
 

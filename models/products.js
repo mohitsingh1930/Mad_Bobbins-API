@@ -1,8 +1,9 @@
 const mongoose = require("mongoose")
 const autoIncrement = require("mongoose-auto-increment")
 
+var defaults = require("../errorHandlers").defaults
 
-autoIncrement.initialize(mongoose.createConnection("mongodb://localhost/ARLORS", {useUnifiedTopology: true, useNewUrlParser: true}))
+autoIncrement.initialize(mongoose.createConnection(defaults.DB_CONNECTION_STRING, {useUnifiedTopology: true, useNewUrlParser: true}))
 
 
 var schema = mongoose.Schema({
