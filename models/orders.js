@@ -29,7 +29,7 @@ var schema = mongoose.Schema({
 	},
 	status: {
 		type: String,
-		enum: ["pending", "picked", "assigned", "completed", "out", "delievered"],
+		enum: ["pending", "picked", "assigned", "completed", "out", "delivered"],
 		required: true,
 		default: "pending"
 	},
@@ -66,7 +66,7 @@ var schema = mongoose.Schema({
 		cancellation_reason: String
 	},
 	pickup_id: {type: mongoose.ObjectId},
-	deliever_id: {type: mongoose.ObjectId},
+	deliver_id: {type: mongoose.ObjectId},
 	temp_id: {type: mongoose.ObjectId, ref: "temporary_users"},
 	temp_user: {
 		name: {type: String},

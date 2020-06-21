@@ -181,7 +181,7 @@ router.get("/tailor/pendingDetails", (req, res) => {
 			products: order.products
 		}))
 
-		console.log("Result:", resolve)
+		// console.log("Result:", resolve)
 
 		res.status(200).json({
 			result: resolve
@@ -200,12 +200,12 @@ router.get("/tailor/pendingDetails", (req, res) => {
 
 
 // response: orderId, pickupDate, tailor: [name, address, phone_no]
-router.get("/pickup/picked", (req, res) => {
+router.get("/tailor/stitched", (req, res) => {
 
-	let pickupId = req.query.pickupId;
+	let tailorId = req.query.tailorId;
 
-	if(!pickupId) {
-		res.status(406).json({
+	if(!tailorId) {
+		return res.status(406).json({
 			error_msg: "pickupId is missing"
 		})
 	}
@@ -214,8 +214,8 @@ router.get("/pickup/picked", (req, res) => {
 		{
 			$match: {
 				"active.status": 1,
-				"pickup_id": mongoose.Types.ObjectId(pickupId),
-				"status": "picked"
+				"tailor_id": mongoose.Types.ObjectId(tailorId),
+				"status": "completed"
 			}
 		},
 		{
@@ -223,6 +223,7 @@ router.get("/pickup/picked", (req, res) => {
 				_id: {
 					"order_id": "$order_id",
 					"tailor_id": "$tailor_id",
+					"temp_id": "$temp_id",
 					"status": "$status",
 					"dates": "$dates"
 				}
@@ -230,10 +231,10 @@ router.get("/pickup/picked", (req, res) => {
 		},
 		{
 			$lookup: {
-				from: "tailors",
+				from: "temporary_users",
 				foreignField: "_id",
-				localField: "_id.tailor_id",
-				as: "tailor"
+				localField: "_id.temp_id",
+				as: "temp_user"
 			}
 		},
 		// {
@@ -259,9 +260,9 @@ router.get("/pickup/picked", (req, res) => {
 				orderId: el._id.order_id,
 				// pickupDate: dateFns.format(new Date(el._id.dates.pickup), "dd-MM-yyyy"),
 				// tailor: {
-				tailorName: el.tailor[0].name,
-				tailorAddress: el.tailor[0].contact.address.text,
-				tailorPhone_no: el.tailor[0].contact.phone_no
+				userName: el.temp_user[0].name
+				// tailorAddress: el.tailor[0].contact.address.text,
+				// tailorPhone_no: el.tailor[0].contact.phone_no
 				// }
 			}))
 		})
@@ -278,13 +279,13 @@ router.get("/pickup/picked", (req, res) => {
 
 
 // response: orderId, pickupDate, tailor: [name, address, phone_no], deliveryDate
-router.get("/pickup/assigned" ,(req, res) => {
+router.get("/tailor/completed" ,(req, res) => {
 
-	let pickupId = req.query.pickupId;
+	let tailorId = req.query.tailorId;
 
-	if(!pickupId) {
-		res.status(406).json({
-			error_msg: "pickupId is missing"
+	if(!tailorId) {
+		return res.status(406).json({
+			error_msg: "tailorId is missing"
 		})
 	}
 
@@ -292,8 +293,8 @@ router.get("/pickup/assigned" ,(req, res) => {
 		{
 			$match: {
 				"active.status": 1,
-				"pickup_id": mongoose.Types.ObjectId(pickupId),
-				"status": "assigned"
+				"tailor_id": mongoose.Types.ObjectId(tailorId),
+				"status": "out"
 			}
 		},
 		{
@@ -317,25 +318,22 @@ router.get("/pickup/assigned" ,(req, res) => {
 		},
 		{
 			$lookup: {
+				from: "movers_deliveries",
+				foreignField: "_id",
+				localField: "_id.deliver_id",
+				as: "delivery_client"
+			}
+		},
+		{
+			$lookup: {
 				from: "temporary_users",
 				foreignField: "_id",
 				localField: "_id.temp_id",
 				as: "temp_user"
 			}
 		},
-		// {
-		// 	$group: {
-		// 		_id: {
-		// 			"order_id": "$_id.order_id",
-		// 			"dates": "$_id.dates",
-		// 			"status": "$_id.status",
-		// 			"tailor": {$arrayElemAt: ["$tailor", 0]},
-		// 			"temp_user": {$arrayElemAt: ["$temp_user", 0]}
-		// 		}
-		// 	}
-		// },
 		{
-			$sort: {"_id.dates.delivery": -1}
+			$sort: {"_id.dates.order": -1}
 		}
 	]).exec()
 	.then(resolve => {
@@ -347,8 +345,9 @@ router.get("/pickup/assigned" ,(req, res) => {
 				orderId: el._id.order_id,
 				// pickupDate: dateFns.format(new Date(el.dates.pickup), "dd-MM-yyyy"),
 				deliveryDate: dateFns.format(dateFns.addDays(new Date(el._id.dates.pickup), el.tailor[0].max_days_to_complete), "dd-MM-yyyy"),
+				deliveryClientName: el.delivery_client[0]?el.delivery_client[0].name:"",
 				// tailor: {
-				tailorName: el.tailor[0].name,
+				// tailorName: el.tailor[0].name,
 				customerName: el.temp_user[0].name
 				// }
 			}))
@@ -365,7 +364,7 @@ router.get("/pickup/assigned" ,(req, res) => {
 })
 
 
-router.put("/tailor/update/completed", (req, res) => {
+router.put("/tailor/update/stitched", (req, res) => {
 
 	console.log(req.body)
 
@@ -384,10 +383,11 @@ router.put("/tailor/update/completed", (req, res) => {
 
 		{
 			"active.status": 1,
+			"tailor_id": req.body.tailorId,
 			"order_id": req.body.orderId,
 		},
 		{
-			$set: {status: "picked", "pickup_id": mongoose.Types.ObjectId(req.body.pickupId), "movements.picked.date": new Date(), "movements.picked.checked": true}
+			$set: {status: "completed"}
 		},
 		function(err, result) {
 
@@ -418,19 +418,19 @@ router.put("/tailor/update/completed", (req, res) => {
 })
 
 
-router.put("/pickup/update/delievered", (req, res) => {
+router.put("/tailor/update/completed", (req, res) => {
 
-	console.log(req.body.pickupId, req.body.orderId)
+	console.log(req.body.tailorId, req.body.orderId)
 
-	order.update(
+	order.updateMany(
 		{
-			status: "picked",
+			status: "completed",
 			order_id: req.body.orderId,
-			pickup_id: req.body.pickupId,
-			"movements.picked.checked": true
+			tailor_id: req.body.tailorId,
+			"movements.assigned.checked": true
 		},
 		{
-			$set: {"status": "assigned", "movements.assigned": {"date": new Date(), "checked": true}}
+			$set: {"status": "out", "movements.out": {"date": new Date(), "checked": true}}
 		},
 		function (err, result) {
 
@@ -1147,7 +1147,7 @@ router.put("/pickup/update/delievered", (req, res) => {
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<SCOPE: delivery
 
-router.get("/delievery/pending", (req, res) => {
+router.get("/delivery/pending", (req, res) => {
 
 	// if(!status[req.params.status]) {
 	// 	res.send({
@@ -1160,26 +1160,47 @@ router.get("/delievery/pending", (req, res) => {
 		{
 			$match: {
 				"active.status": 1,
-				$or: [{status: "completed"}, {$and: [{status: "out"}, {"movements.out.checked": false}, {"deliever_id": req.query.deliever_id} ]} ],
+				"status": "completed"
+				// "order_id": "$order_id",
+				// $or: [ {"status": "pending"}, {$and: [ {"status": "picked"}, {"movements.picked.checked": false}, {"pickup_id": req.query.id} ]} ],
+			}
+		},
+		{
+			$group: {
+				_id: {
+					"order_id": "$order_id",
+					"temp_id": "$temp_id",
+					"tailor_id": "$tailor_id",
+					"status": "$status",
+					"dates": "$dates",
+					"assigned": "$movements.assigned"
+				},
+				product: {
+					$push: {
+						id: "$product.id",
+						orderInstanceId: "$_id"
+					}
+				}
 			}
 		},
 		{
 			$lookup: {
-				from: "users",
-				let: { user_id: "$user_id", addresss_id: "$address_id" },
-				pipeline: [
-					{
-						$match: {_id: "$$user_id"}
-					},
-					{
-						$unwind: "$contact.address"
-					},
-					{
-						$match: {"contact.address._id": "$$address_id"}
-					}
-				],
-				as: "users"
+				from: "temporary_users",
+				foreignField: "_id",
+				localField: "_id.temp_id",
+				as: "temp_user"
 			}
+		},
+		{
+			$lookup: {
+				from: "tailors",
+				foreignField: "_id",
+				localField: "_id.tailor_id",
+				as: "tailor"
+			}
+		},
+		{
+			$unwind: "$product"
 		},
 		{
 			$lookup: {
@@ -1190,41 +1211,66 @@ router.get("/delievery/pending", (req, res) => {
 			}
 		},
 		{
-			$project: {
-				"dates": 1,
-				"user.id": "$user_id",
-				"status": 1,
-				"product": {
-					"type": 1,
-					"id": 1,
-					"name": {$arrayElemAt: ["$products.name", 0]}
+			$group: {
+				_id: {
+					"order_id": "$_id.order_id",
+					"dates": "$_id.dates",
+					"status": "$_id.status",
+					"temp_user": {$arrayElemAt: ["$temp_user", 0]},
+					"tailor": {$arrayElemAt: ["$tailor", 0]},
+					"assigned": "$_id.assigned"
 				},
-				"user.name": {$arrayElemAt: ["$users.name", 0]},
-				"user.contact_num": {$arrayElemAt: ["$user.contact.phone_no", 0]},
-				"user.address": {$arrayElemAt: ["$user.address", 0]},
-				"temp_user": 1
+				"products": {
+					$push: {
+						"id": "$product.id",
+						"name": {$arrayElemAt: ["$products.name", 0]},
+						"orderInstanceId": "$product.orderInstanceId"
+					}
+				}
 			}
+		},
+		{
+			$sort: {"_id.dates.pickup": -1}
 		}
 	]).exec()
-	.then((result) => {
-		console.log("Result:", result);
-		res.json({
-			status: 200,
-			result: result
+	.then((resolve) => {
+
+		console.log("Result:", resolve);
+
+		resolve = resolve.map(order => new Object({
+			orderId: order._id.order_id,
+			status: order._id.status,
+			// user: {
+			// userId: order._id.temp_user._id,
+			userName: order._id.temp_user.name,
+			tailorName: order._id.tailor.name,
+			tailorAddress: order._id.tailor.contact.address.text,
+			tailorPhone_no: order._id.tailor.contact.phone_no,
+			// userAge: order._id.temp_user.age,
+			// userPhone_no: order._id.temp_user.contact.phone_no,
+			// },
+			products: order.products
+		}))
+
+		// console.log("Result:", resolve)
+
+		res.status(200).json({
+			result: resolve
 		})
+
 	})
 	.catch((err) => {
+
 		console.log("Error:", err);
-		res.json({
-			status: 500,
-			error_msg: "Something wrong"
-		})
+		if(typeof err !== "string")
+			res.status(500).json(handler.internalServerError)
+
 	})
 
 })
 
 
-router.get("/delievery/picked", (req, res) => {
+router.get("/delivery/picked", (req, res) => {
 
 	// if(!status[req.params.status]) {
 	// 	res.send({
@@ -1233,77 +1279,76 @@ router.get("/delievery/picked", (req, res) => {
 	// 	})
 	// }
 
+	let {deliveryId} = req.query
+
 	order.aggregate([
 		{
 			$match: {
 				"active.status": 1,
-				"status": "out",
-				"deliever_id": req.query.id,
-				"movements.out.checked": true
+				"deliver_id": mongoose.Types.ObjectId(deliveryId),
+				"status": "out"
 			}
 		},
 		{
-			$lookup: {
-				from: "users",
-				let: { user_id: "$user_id", addresss_id: "$address_id" },
-				pipeline: [
-					{
-						$match: {_id: "$$user_id"}
-					},
-					{
-						$unwind: "$contact.address"
-					},
-					{
-						$match: {"contact.address._id": "$$address_id"}
-					}
-				],
-				as: "users"
-			}
-		},
-		{
-			$lookup: {
-				from: "products",
-				foreignField: "_id",
-				localField: "product.id",
-				as: "products"
-			}
-		},
-		{
-			$project: {
-				"dates": 1,
-				"user.id": "$user_id",
-				"status": 1,
-				"product": {
-					"type": 1,
-					"id": 1,
-					"name": {$arrayElemAt: ["$products.name", 0]}
+			$group: {
+				_id: {
+					"order_id": "$order_id",
+					"temp_id": "$temp_id",
+					"status": "$status",
+					"dates": "$dates",
+					"payment": "$payment"
 				},
-				"user.name": {$arrayElemAt: ["$users.name", 0]},
-				"user.contact_num": {$arrayElemAt: ["$user.contact.phone_no", 0]},
-				"user.address": {$arrayElemAt: ["$user.address", 0]},
-				"temp_user": 1
+				total_price: {$sum: "$payment.current_price"}
 			}
+		},
+		{
+			$lookup: {
+				from: "temporary_users",
+				foreignField: "_id",
+				localField: "_id.temp_id",
+				as: "temp_user"
+			}
+		},
+		// {
+		// 	$group: {
+		// 		_id: {
+		// 			"order_id": "$_id.order_id",
+		// 			"dates": "$_id.dates",
+		// 			"status": "$_id.status",
+		// 			"tailor": {$arrayElemAt: ["$tailor", 0]}
+		// 		}
+		// 	}
+		// },
+		{
+			$sort: {"_id.dates.pickup": -1}
 		}
 	]).exec()
-	.then((result) => {
-		console.log("Result:", result);
-		res.json({
-			status: 200,
-			result: result
+	.then(resolve => {
+
+		console.log(resolve)
+
+		res.status(200).json({
+			result: resolve.map(el => new Object({
+				orderId: el._id.order_id,
+				userName: el.temp_user[0].name,
+				userAddress: el.temp_user[0].contact.address.text,
+				userPhone_no: el.temp_user[0].contact.phone_no,
+				totalPrice: el.total_price
+			}))
 		})
+
 	})
-	.catch((err) => {
-		console.log("Error:", err);
-		res.json({
-			status: 500,
-			error_msg: "Something wrong"
-		})
+	.catch(err => {
+
+		console.log(err)
+		res.status(500).json(handler.internalServerError)
+
 	})
 
 })
 
 
-router.get("/delievery/delievered", (req, res) => {
+router.get("/delivery/delivered", (req, res) => {
 
 	// if(!status[req.params.status]) {
 	// 	res.send({
@@ -1312,77 +1357,77 @@ router.get("/delievery/delievered", (req, res) => {
 	// 	})
 	// }
 
+	let {deliveryId} = req.query
+
 	order.aggregate([
 		{
 			$match: {
 				"active.status": 1,
-				"status": "delievered",
-				"deliever_id": req.query.id,
-				"movements.delievered.checked": true
+				"deliver_id": mongoose.Types.ObjectId(deliveryId),
+				"status": "delivered"
 			}
 		},
 		{
-			$lookup: {
-				from: "users",
-				let: { user_id: "$user_id", addresss_id: "$address_id" },
-				pipeline: [
-					{
-						$match: {_id: "$$user_id"}
-					},
-					{
-						$unwind: "$contact.address"
-					},
-					{
-						$match: {"contact.address._id": "$$address_id"}
-					}
-				],
-				as: "users"
-			}
-		},
-		{
-			$lookup: {
-				from: "products",
-				foreignField: "_id",
-				localField: "product.id",
-				as: "products"
-			}
-		},
-		{
-			$project: {
-				"dates": 1,
-				"user.id": "$user_id",
-				"status": 1,
-				"product": {
-					"type": 1,
-					"id": 1,
-					"name": {$arrayElemAt: ["$products.name", 0]}
+			$group: {
+				_id: {
+					"order_id": "$order_id",
+					"temp_id": "$temp_id",
+					"tailor_id": "$tailor_id",
+					"status": "$status",
+					"dates": "$dates",
+					"payment": "$payment"
 				},
-				"user.name": {$arrayElemAt: ["$users.name", 0]},
-				"user.contact_num": {$arrayElemAt: ["$user.contact.phone_no", 0]},
-				"user.address": {$arrayElemAt: ["$user.address", 0]},
-				"temp_user": 1
+				total_price: {$sum: "$payment.current_price"}
 			}
+		},
+		{
+			$lookup: {
+				from: "temporary_users",
+				foreignField: "_id",
+				localField: "_id.temp_id",
+				as: "temp_user"
+			}
+		},
+
+		{
+			$lookup: {
+				from: "tailors",
+				foreignField: "_id",
+				localField: "_id.tailor_id",
+				as: "tailor"
+			}
+		},
+		{
+			$sort: {"_id.dates.pickup": -1}
 		}
 	]).exec()
-	.then((result) => {
-		console.log("Result:", result);
-		res.json({
-			status: 200,
-			result: result
+	.then(resolve => {
+
+		console.log(resolve)
+
+		res.status(200).json({
+			result: resolve.map(el => new Object({
+				orderId: el._id.order_id,
+				userName: el.temp_user[0].name,
+				userAddress: el.temp_user[0].contact.address.text,
+				tailorName: el.tailor[0].name,
+				totalPrice: el.total_price
+			}))
 		})
+
 	})
-	.catch((err) => {
-		console.log("Error:", err);
-		res.json({
-			status: 500,
-			error_msg: "Something wrong"
-		})
+	.catch(err => {
+
+		console.log(err)
+		res.status(500).json(handler.internalServerError)
+
 	})
 
 })
 
 
-router.put("/delievery/update/taken", (req, res) => {
+// NOT_IN_USE
+router.put("/delivery/update/taken", (req, res) => {
 
 	order.update(
 		{
@@ -1413,49 +1458,59 @@ router.put("/delievery/update/taken", (req, res) => {
 })
 
 
-router.put("/delievery/update/picked", (req, res) => {
+router.put("/delivery/update/picked", (req, res) => {
 
-	order.update(
+	let {deliveryId, orderId} = req.body
+
+	order.updateMany(
 		{
-			"active.status": 1,
-			"order_id": req.query.order_id,
-			"status": "out",
-			"movements.out.checked": false
+			status: "completed",
+			order_id: orderId,
+			"movements.assigned.checked": true
 		},
 		{
-			$set: {"movements.out.date": Date.now(), "movements.out.checked": true}
-		}
-	),
-	function(err, result) {
+			$set: {"status": "out", deliver_id: mongoose.Types.ObjectId(deliveryId), "movements.out": {"date": new Date(), "checked": true}}
+		},
+		function (err, result) {
 
-		if(err) {
-			console.log("ERROR:::\n", err)
-			res.json(handler.internalServerError)
-		}
-		else {
-			console.log("Result>>\n", result)
-			res.json({
-				status: 200,
-				result: result
-			})
-		}
+			if(err) {
+				console.log("ERROR:::\n", err)
+				res.status(500).json(handler.internalServerError)
+			}
+			else {
 
-	}
+				console.log("Result>>\n", result)
+
+				if(!result.n) {
+					return res.status(404).json({
+						error_msg: "Not Found"
+					})
+				}
+
+				res.status(200).json({
+					result: result
+				})
+			}
+
+		}
+	)
 
 })
 
 
-router.put("/delievery/update/delievered", (req, res) => {
+router.put("/delivery/update/delivered", (req, res) => {
+
+	let {deliveryId, orderId} = req.body
 
 	order.update(
 		{
 			status: "out",
-			order_id: req.query.order_id,
-			pickup_id: req.query.pickup_id,
+			order_id: orderId,
+			deliver_id: deliveryId,
 			"movements.out.checked": true
 		},
 		{
-			$set: {"status": "delievered", "movements.delievered": {"date": Date.now(), "checked": true}}
+			$set: {"status": "delivered", "movements.delivered": {"date": Date.now(), "checked": true}}
 		},
 		function (err, result) {
 
@@ -1465,8 +1520,14 @@ router.put("/delievery/update/delievered", (req, res) => {
 			}
 			else {
 				console.log("Result>>\n", result)
-				res.json({
-					status: 200,
+
+				if(!result.n) {
+					return res.status(404).json({
+						error_msg: "Not Found"
+					})
+				}
+
+				res.status(200).json({
 					result: result
 				})
 			}

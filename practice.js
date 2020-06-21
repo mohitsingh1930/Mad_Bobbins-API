@@ -96,10 +96,12 @@ var schema = new mongoose.Schema({
 var model = mongoose.model("test", schema);
 
 
-require("./models/tailors").find({"contact.email": "rajtailors@arlors.com", "active": 1}).exec()
+// require("./models/tailors").updateMany({}, {active: 1}).exec()
+// .then(resolve => console.log(resolve))
+
+require("./models/orders").order.updateMany({status: "out"}, {deliver_id: mongoose.Types.ObjectId("5eef00833868103a11e489ce")})
+.exec()
 .then(resolve => console.log(resolve))
-
-
 
 
 // let productsTopBottom = [10, 12, 2, 1, 16, 17, 11, 5, 13]
