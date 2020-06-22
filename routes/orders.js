@@ -1107,7 +1107,7 @@ router.put("/pickup/update/delievered", (req, res) => {
 
 	console.log(req.body.pickupId, req.body.orderId)
 
-	order.update(
+	order.updateMany(
 		{
 			status: "picked",
 			order_id: req.body.orderId,
@@ -1298,7 +1298,6 @@ router.get("/delivery/picked", (req, res) => {
 					"temp_id": "$temp_id",
 					"status": "$status",
 					"dates": "$dates",
-					"payment": "$payment"
 				},
 				total_price: {$sum: "$payment.current_price"}
 			}
@@ -1377,7 +1376,6 @@ router.get("/delivery/delivered", (req, res) => {
 					"tailor_id": "$tailor_id",
 					"status": "$status",
 					"dates": "$dates",
-					"payment": "$payment"
 				},
 				total_price: {$sum: "$payment.current_price"}
 			}
@@ -1504,7 +1502,7 @@ router.put("/delivery/update/delivered", (req, res) => {
 
 	let {deliveryId, orderId} = req.body
 
-	order.update(
+	order.updateMany(
 		{
 			status: "out",
 			order_id: orderId,
@@ -1726,7 +1724,10 @@ router.get("/customer", async (req, res) => {
 			}
 		},
 		{
-			$sort: {"dates.order": -1}
+			$sort: {
+				"dates.order": -1,
+				"order_id": -1
+			}
 		}
 	]).exec()
 	.then(resolve => {
@@ -1771,6 +1772,7 @@ router.get("/customer/detail", (req, res) => {
 			$group: {
 				_id: {
 					"order_id": "$order_id",
+					"_id": "$_id",
 					"product": "$product",
 					"dates": {
 						"pickup": "$dates.pickup",
@@ -1866,6 +1868,7 @@ router.get("/customer/detail", (req, res) => {
 		temp = {
 			orderId: resolve[0].order_id,
 			pickupDate: dateFns.format(new Date(resolve[0].dates.pickup), "dd MMM"),
+			orderDate: dateFns.format(new Date(resolve[0].dates.order), "dd MMM"),
 			status: handler.computeOrderStatus(resolve[0].status, resolve[0].movements),
 			slot: handler.slotsToString(resolve[0].slot).string,
 			deliveryDate: dateFns.format(dateFns.addDays(new Date(resolve[0].dates.pickup), resolve[0].daysToComplete), "EEE, dd MMM"),

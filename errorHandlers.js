@@ -54,7 +54,7 @@ module.exports.computeOrderStatus = (status, movements) => {
 		pending: "Confirmed",
 		picked: movements.picked.checked?"Picked":"Confirmed",
 		assigned: "Stitching in progress",
-		completed: "Ready to dispatche",
+		completed: "Ready to dispatch",
 		out: "Dispatched",
 		delivered: "Delivered"
 	}
