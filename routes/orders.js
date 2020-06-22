@@ -294,7 +294,9 @@ router.get("/tailor/completed" ,(req, res) => {
 			$match: {
 				"active.status": 1,
 				"tailor_id": mongoose.Types.ObjectId(tailorId),
-				"status": "out"
+				"status": {
+					$in: ["out", "delivered"]
+				}
 			}
 		},
 		{
