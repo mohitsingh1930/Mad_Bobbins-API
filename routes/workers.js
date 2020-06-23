@@ -75,7 +75,6 @@ router.post("/create", (req, res) => {
 })
 
 
-
 // Login Check
 router.get("/details", (req, res) => {
 
@@ -126,6 +125,179 @@ router.get("/details", (req, res) => {
 
 
 // tailors
+router.get("/tailor", (req, res) => {
+
+	tailor.aggregate([
+		{
+			$lookup: {
+				from: "prices",
+				let: {tailor_id: "$_id"},
+				pipeline: [
+					{
+						$match: {$expr: {$eq: ["$tailor_id", "$$tailor_id"]}}
+					},
+					{
+						$sort: {amount: 1}
+					},
+					{
+						$limit: 1
+					}
+				],
+				// foreignField: "tailor_id",
+				// localField: "_id",
+				as: "price"
+			}
+		},
+		{
+			$project: {
+				name: {
+					$substrCP: ["$name", 0, {$indexOfCP: ["$name", "("]}]
+				},
+				delivery: "$max_days_to_complete",
+				price: {$arrayElemAt: ["$price.amount", 0]},
+				address: "Burari, Delhi",
+				speciality: "Indian wear"
+			}
+		},
+		{
+			$sort: {"name": 1}
+		}
+	])
+	.exec()
+	.then(resolve => {
+
+		console.log("result", resolve)
+
+		res.status(200).json({
+			result: resolve
+		})
+
+	})
+	.catch(err => {
+
+		console.log(err)
+		res.status(500).json(handler.internalServerError)
+
+	})
+
+})
+
+
+router.get("/tailor/detailedPrices", (req, res) => {
+
+	tailor.aggregate([
+		{
+			'$lookup': {
+				'from': 'prices', 
+				'foreignField': 'tailor_id', 
+				'localField': '_id', 
+				'as': 'productPrice'
+			}
+		}, {
+			'$unwind': '$productPrice'
+		}, {
+			'$lookup': {
+				'from': 'products', 
+				'foreignField': '_id', 
+				'localField': 'productPrice.product_id', 
+				'as': 'product'
+			}
+		}, {
+			'$project': {
+				'tailorName': '$name', 
+				'productDetails': {
+					'id': {
+						'$arrayElemAt': [
+							'$product._id', 0
+						]
+					}, 
+					'name': {
+						'$arrayElemAt': [
+							'$product.name', 0
+						]
+					},
+					'price': '$productPrice.amount'
+				}
+			}
+		}, {
+			'$group': {
+				'_id': {
+					'id': '$_id',
+					'name': '$tailorName'
+				},
+				'products': {
+					'$push': '$productDetails'
+				}
+			}
+		}, {
+			"$sort": {"_id.name": 1}
+		}
+	])
+	.exec()
+	.then(resolve => {
+
+		resolve = resolve.map(tailor => {
+
+			let products = tailor.products;
+
+			var temp_arr = [];
+			var result = [];
+			var temp_result = {};
+
+			for(let i=0; i<products.length; i++) {
+
+				let start = products[i].name.split(" (")[0]
+
+				if(temp_arr.indexOf(start) == -1) {
+
+					console.log(start)
+
+					temp_arr.push(start);
+
+					if(start.startsWith('Designer')) {
+						temp_result.name = start.slice(9)
+						temp_result.category = 'Designer'
+					}
+					else if(start.startsWith('Simple')) {
+						temp_result.name = start.slice(7);
+						temp_result.category = 'Simple'
+					}
+					else {
+						temp_result.name = start
+					}
+
+					// temp_result.image = products[i].image
+
+
+					temp_result.type = [];
+
+					for(let el of products) {
+						if(el.name.startsWith(start) && el.name.split(" (").length>1)
+							temp_result.type.push({lining: el.name.split("(")[1].split(" ")[0], price: el.price})
+					}
+
+					result.push(temp_result)
+					temp_result = {}
+				}
+
+			}
+
+			return {
+				name: tailor._id.name.split("(")[0],
+				products: result
+			}
+
+		})
+
+		res.status(200).json({
+			result: resolve
+		})
+
+	})
+
+})
+
+
 router.post("/tailor/prices", (req, res) => {
 
 	// console.log(req.body)
