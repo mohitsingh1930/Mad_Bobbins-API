@@ -57,6 +57,7 @@ var schema = mongoose.Schema({
 	},
 	payment: {
 		price_id: {type: mongoose.ObjectId, ref: "prices"},
+		design_price: Number,
 		current_price: Number,
 		prepaid: Boolean,
 		transaction_id: mongoose.ObjectId

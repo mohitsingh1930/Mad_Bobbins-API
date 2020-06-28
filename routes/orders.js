@@ -18,22 +18,22 @@ var handler = require("../errorHandlers")
 
 
 // multer
-const multer = require("multer")
-const { product } = require("../models/products")
-const { resolveSoa } = require("dns")
-const upload = multer(
-	{
-		storage: multer.diskStorage({
-			destination: function(req, file, cb) {
-				cb(null, __dirname+"/../formUploads/orderProducts")
-			},
-			filename: function(req, file, cb) {
-				let randomString = random({length: 15})
-				cb(null, randomString +"."+ file.mimetype)
-			}
-		})
-	}
-)
+// const multer = require("multer")
+// const { product } = require("../models/products")
+// const { resolveSoa } = require("dns")
+// const upload = multer(
+// 	{
+// 		storage: multer.diskStorage({
+// 			destination: function(req, file, cb) {
+// 				cb(null, __dirname+"/../formUploads/orderProducts")
+// 			},
+// 			filename: function(req, file, cb) {
+// 				let randomString = random({length: 15})
+// 				cb(null, randomString +"."+ file.mimetype)
+// 			}
+// 		})
+// 	}
+// )
 
 
 // scope: tailor
