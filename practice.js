@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
-mongoose.connect(require("./errorHandlers").defaults.DB_CONNECTION_STRING, {useNewUrlParser: true})
+const dateFns = require("date-fns")
+// mongoose.connect(require("./errorHandlers").defaults.DB_CONNECTION_STRING, {useNewUrlParser: true})
 
 // mongoose.connect("mongodb://localhost/practice", {useNewUrlParser: true})
 
@@ -82,7 +83,7 @@ mongoose.connect(require("./errorHandlers").defaults.DB_CONNECTION_STRING, {useN
 
 // })
 
-var handlers = require("./errorHandlers");
+var handler = require("./errorHandlers");
 const { product } = require("./models/products");
 
 var schema = new mongoose.Schema({
@@ -95,13 +96,25 @@ var schema = new mongoose.Schema({
 
 var model = mongoose.model("test", schema);
 
+const fs = require('fs')
+var name = "TestImage.jpg";
+var img = "/9j/4QFcRXhpZgAATU0AKgAAAAgABwEAAAQAAAABAAACFQEQAAIAAAAKAAAAYgEBAAQAAAABAAABkAEPAAIAAAAHAAAAbIdpAAQAAAABAAAAhwESAAMAAAABAAAAAAEyAAIAAAAUAAAAcwAAAAByZWFsbWUgVTEAUmVhbG1lADIwMjA6MDY6MjUgMTg6MDQ6NTMAAAekAwADAAAAAQAAAACIJwADAAAAAQVBAACSCgAFAAAAAQAAAOGCmgAFAAAAAQAAAOmSCQADAAAAAQAAAACSCAAEAAAAAQAAAACCnQAFAAAAAQAAAPEAAAAAAAANPgAAA+gAAAH0AAAnEAAAVfAAACcQAAQBEAACAAAACgAAAS8BDwACAAAABwAAATkBEgADAAAAAQAAAAABMgACAAAAFAAAAUAAAAAAcmVhbG1lIFUxAFJlYWxtZQAyMDIwOjA2OjI1IDE4OjA0OjUzAP/gABBKRklGAAEBAAABAAEAAP/bAEMAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/bAEMBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/AABEIAZACFQMBIgACEQEDEQH/xAAfAAAABwEBAQEBAAAAAAAAAAADBAUGBwgJAgABCgv/xAA4EAACAgICAgICAgEFAAEDAAsCAwEEBQYSEwcRCBQhIgAjFQkWJDEyFwozQSU0QhhDUTVSU2GC/8QAHQEAAwEBAQEBAQEAAAAAAAAAAAECAwQFBgcICf/EADoRAAECBAUCBQMDBAIBBQEBAAERIQAxQVECYXGB8JGhAxKxwdEi4fEEEzIFQlJyYoKyBgcUkqIWwv/aAAwDAQACEQMRAD8Aoj83NBZp3kxzVVmhT2GWZKn6FcIlUOFULW4yH0SmTwOSgfYc5kmKCGRSWoV"
 
+
+async function main() {
+
+	let today = new Date()
+	let pickupDate = dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate()), 1)
+	let result = await handler.checkAndCreateSlot(pickupDate, "Burari")
+	console.log(result)
+
+}
+
+main()
 // require("./models/tailors").updateMany({}, {active: 1}).exec()
 // .then(resolve => console.log(resolve))
+// .catch(err => console.log(err))
 
-require("./models/orders").order.updateMany({status: "out"}, {deliver_id: mongoose.Types.ObjectId("5eef00833868103a11e489ce")})
-.exec()
-.then(resolve => console.log(resolve))
 
 
 // let productsTopBottom = [10, 12, 2, 1, 16, 17, 11, 5, 13]

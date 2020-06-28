@@ -38,7 +38,7 @@ var schema = mongoose.Schema({
 	date_joined: {type: Date, required: true, default: Date.now()},
 	date_left: {type: Date},
 	Wallets: {},
-	active: {type: Boolean, required: true, default: true}
+	active: {type: Boolean, required: true, default: true},
 
 })
 

@@ -20,6 +20,7 @@ var handler = require("../errorHandlers")
 // multer
 const multer = require("multer")
 const { product } = require("../models/products")
+const { resolveSoa } = require("dns")
 const upload = multer(
 	{
 		storage: multer.diskStorage({
@@ -118,6 +119,7 @@ router.get("/tailor/pendingDetails", (req, res) => {
 				product: {
 					$push: {
 						id: "$product.id",
+						image: "$product.image",
 						orderInstanceId: "$_id"
 					}
 				}
@@ -155,7 +157,8 @@ router.get("/tailor/pendingDetails", (req, res) => {
 					$push: {
 						"id": "$product.id",
 						"name": {$arrayElemAt: ["$products.name", 0]},
-						"orderInstanceId": "$product.orderInstanceId"
+						"orderInstanceId": "$product.orderInstanceId",
+						"image": "$product.image"
 					}
 				}
 			}
@@ -193,6 +196,30 @@ router.get("/tailor/pendingDetails", (req, res) => {
 		console.log("Error:", err);
 		if(typeof err !== "string")
 			res.status(500).json(handler.internalServerError)
+
+	})
+
+})
+
+
+router.get("/tailor/productImage", (req, res) => {
+
+	let id = req.query.id;
+
+	order.findById(id).exec()
+	.then(resolve => {
+
+		console.log(resolve)
+		if(!resolve) {
+			res.sendStatus(404)
+		}
+		else {
+
+			res.status(200).json({
+				result: resolve[0].product.image?resolve[0].product.image:""
+			})
+
+		}
 
 	})
 
@@ -992,18 +1019,58 @@ router.get("/pickup/findById", (req, res) => {
 })
 
 
-router.post("/pickup/productImage", upload.single(), (req, res) => {
+router.post("/pickup/productImage", (req, res) => {
 
-	order.update(
-		{
-			"order_id": req.body.order_id,
-			"_id": req.body.id
-		},
-		{
-			$set: {"product.image": randomString +"."+ req.file.filename}
-		}
-	).exec()
-	.then((resolve, reject) => {
+
+	var name = req.body.name;
+	var img = req.body.image;
+	var id = req.body.id;
+
+	console.log(name, id)
+
+	if(!name || !img || !id) {
+	  return	res.status(406).json({
+			error_msg: "Something is missing"
+		})
+	}
+
+
+	const fs = require('fs');
+
+
+	// console.log(name, id)
+
+	var realFile = Buffer.from(img, "base64");
+
+	new Promise((resolve, reject) => {
+
+		fs.writeFile( __dirname + `/../data/images/orders/${name}`, realFile, function(err) {
+			if(err) {
+				console.log(err);
+				reject(err)
+			}
+			else {
+				console.log("File", name, "Saved")
+				resolve(1)
+			}
+
+		});
+
+	})
+	.then(resolve => {
+
+		return order.updateOne(
+			{
+				// "order_id": req.body.orderId,
+				"_id": mongoose.Types.ObjectId(id)
+			},
+			{
+				$set: {"product.image": `/images/orders/${name}`}
+			}
+		).exec()
+
+	})
+	.then(resolve => {
 
 		console.log(resolve)
 		res.json({
@@ -1013,7 +1080,7 @@ router.post("/pickup/productImage", upload.single(), (req, res) => {
 
 	})
 	.catch((err) => {
-		res.json(handler.internalServerError)
+		res.status(500).json(handler.internalServerError)
 	})
 
 })
@@ -1659,6 +1726,168 @@ router.post("/customer/create", async (req, res) => {
 })
 
 
+router.post('/customer/return', async (req, res) => {
+
+	let list = JSON.parse(req.body.list);
+
+	console.log(list)
+
+	if(!list)
+	return res.sendStatus(406)
+
+	list = list.map(el => el.id)
+
+
+	order.find({ _id: {$in: list} }).exec()
+	.then(async resolve => {
+
+		let invalidEntries = resolve.filter(el => {return el.status != "delivered"})
+
+		if(invalidEntries.length) {
+
+			res.status(406).json({
+				error_msg: "order is not delivered yet"
+				// error_msg: "One or more products are already picked, we cannot return picked products"
+			})
+			throw `Cannot return picked products`
+
+		}
+
+		let today = new Date()
+		let pickupDate = dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate()), 1)
+		let slot = await handler.checkAndCreateSlot(pickupDate, "Burari")
+
+		console.log(products)
+
+		// generate order id
+		let order_id = dateFns.format(new Date(), "yyyyMMdd");
+
+		let lastOrderOfDay = await order.find(
+			{
+				$expr: {
+					$eq: [ {$dayOfYear: "$dates.order"}, {$dayOfYear: new Date()} ]
+				}
+			},
+			{
+				"order_id": 1
+			}
+		)
+		.sort({"order_id": -1})
+		.limit(1)
+		.exec()
+
+		if(lastOrderOfDay.length == 0)
+			order_id += 1
+		else
+			order_id += Number(lastOrderOfDay[0].order_id.slice(8)) + 1;
+
+		let docs = []
+		for(let order of resolve) {
+
+			docs.push({
+				order_id: order_id,
+				product: order.product,
+				user_id: order.user_id,
+				tailor_id: order.tailor_id,
+				"dates.pickup": pickupDate,
+				// addresss_id: product.addresss_id,
+				arrangement_id: slot.arrangements[0]._id,		//schedule id
+				payment: {
+					price_id: order.payment.price_id,
+					current_price: 0,
+					prepaid: false
+				},
+				temp_id: order.temp_id,
+				return: {
+					status: 1,
+					reference: mongoose.Types.ObjectId(order._id)
+				}
+			})
+
+		}
+
+		return order.insertMany(docs)
+
+	})
+	.then(resolve => {
+
+		console.log(resolve)
+		return order.updateMany({_id: {$in: list}}, {$set: {status: "returned"}}).exec()
+
+	})
+	.then(resolve => {
+
+		console.log(resolve)
+		res.sendStatus(200)
+
+	})
+	.catch(err => {
+
+		console.log(err)
+		if(typeof err != "string") {
+			res.status(500).json({
+				error_msg: "Internal Server Error"
+			})
+		}
+
+	})
+
+})
+
+
+router.post('/customer/cancel', (req, res) => {
+
+	let orderId = req.body.orderId;
+
+	console.log(orderId, typeof orderId)
+
+	if(!orderId) {
+		return res.sendStatus(406)
+	}
+
+	order.find({order_id: orderId}).exec()
+	.then(resolve => {
+
+		console.log(resolve)
+
+		if(resolve[0].status != "pending") {
+			res.status(406).json({
+				error_msg: "order already picked"
+			})
+			throw 'Order already picked'
+		}
+
+		return order.updateMany({order_id: orderId}, {$set: {status: "cancelled", "active.cancel.date": new Date()}}).exec()
+
+	})
+	.then(resolve => {
+
+		if(resolve.length == 0) {
+			res.status(404).json({
+				error_msg: "OrderId not found"
+			})
+			throw `OrderId ${orderId} not found`
+		}
+
+		res.status(200).json({
+			result: "Order Cancelled"
+		})
+
+	})
+	.catch(err => {
+
+		console.log(err)
+		if(typeof err != "string") {
+			res.status(500).json({
+				error_msg: "Internal Server Error"
+			})
+		}
+
+	})
+
+})
+
+
 router.get("/customer", async (req, res) => {
 
 	let userId = req.query.userId;
@@ -1667,7 +1896,7 @@ router.get("/customer", async (req, res) => {
 
 	order.aggregate([
 		{
-			$match: {"user_id": mongoose.Types.ObjectId(userId)}
+			$match: {"user_id": mongoose.Types.ObjectId(userId), "status": {$ne: 'returned'}},
 		},
 		{
 			$group: {
@@ -1680,7 +1909,8 @@ router.get("/customer", async (req, res) => {
 					"arrangement_id": "$arrangement_id",
 					"tailor_id": "$tailor_id",
 					"status": "$status",
-					"movements": "$movements"
+					"movements": "$movements",
+					"return": "$return"
 					// "daysToComplete": {$arrayElemAt: ["$tailor.daysToComplete", 0]},
 					// "arrangement": {$filter: ["$schedules"]}
 				}
@@ -1716,6 +1946,7 @@ router.get("/customer", async (req, res) => {
 		{
 			$project: {
 				order_id: "$_id.order_id",
+				return: "$_id.return",
 				dates: "$_id.dates",
 				status: "$_id.status",
 				movements: "$_id.movements",
@@ -1736,6 +1967,8 @@ router.get("/customer", async (req, res) => {
 		res.status(200).json({
 			result: resolve.map(el => new Object({
 				orderId: el.order_id,
+				return: el.return?el.return.status:false,
+				date: dateFns.format(new Date(el.dates.order), "dd MMM"),
 				pickupDate: dateFns.format(new Date(el.dates.pickup), "dd MMM"),
 				status: handler.computeOrderStatus(el.status, el.movements),
 				slot: handler.slotsToString(el.slot).string,
@@ -1765,7 +1998,8 @@ router.get("/customer/detail", (req, res) => {
 		{
 			$match: {
 				"user_id": mongoose.Types.ObjectId(userId),
-				"order_id": orderId
+				"order_id": orderId,
+				"status": {$ne: 'returned'}
 			},
 		},
 		{
@@ -1783,7 +2017,8 @@ router.get("/customer/detail", (req, res) => {
 					"status": "$status",
 					"movements": "$movements",
 					"payment": "$payment",
-					"temp_id": "$temp_id"
+					"temp_id": "$temp_id",
+					"return": "$return"
 					// "daysToComplete": {$arrayElemAt: ["$tailor.daysToComplete", 0]},
 					// "arrangement": {$filter: ["$schedules"]}
 				},
@@ -1837,10 +2072,12 @@ router.get("/customer/detail", (req, res) => {
 			$project: {
 				product: {
 					id: {$arrayElemAt: ["$productDetails._id", 0]},
+					orderInstanceId: "$_id._id",
 					name: {$arrayElemAt: ["$productDetails.name", 0]},
 					quantity: "$quantity",
 					price: "$_id.payment.current_price",
 				},
+				return: "$_id.return",
 				temp_user: {$arrayElemAt: ["$temp_user", 0]},
 				dates: "$_id.dates",
 				status: "$_id.status",
@@ -1868,7 +2105,28 @@ router.get("/customer/detail", (req, res) => {
 		temp = {
 			orderId: resolve[0].order_id,
 			pickupDate: dateFns.format(new Date(resolve[0].dates.pickup), "dd MMM"),
-			orderDate: dateFns.format(new Date(resolve[0].dates.order), "dd MMM"),
+			date: dateFns.format(new Date(resolve[0].dates.order), "dd MMM"),
+			return: resolve[0].return?resolve[0].return.status:false,
+			returnable: (function () {
+
+				console.log("Return:", resolve[0].order_id, resolve[0].status)
+				if(resolve[0].status != "delivered")
+					return false
+
+				console.log("Return:", resolve[0].order_id, resolve[0].movements.delivered)
+				if(resolve[0].movements.delivered.checked == false)
+					return false
+
+				let deliveryDate = new Date(resolve[0].movements.delivered.date)
+				let today = new Date()
+				let inDuration = dateFns.isBefore(today, dateFns.addDays(deliveryDate, handler.defaults.MAXIMUM_RETURN_DURATION))
+
+				console.log("Return:", resolve[0].order_id, inDuration)
+				if(inDuration)
+					return true
+
+				return false
+			})(),
 			status: handler.computeOrderStatus(resolve[0].status, resolve[0].movements),
 			slot: handler.slotsToString(resolve[0].slot).string,
 			deliveryDate: dateFns.format(dateFns.addDays(new Date(resolve[0].dates.pickup), resolve[0].daysToComplete), "EEE, dd MMM"),
@@ -1881,6 +2139,7 @@ router.get("/customer/detail", (req, res) => {
 				total += el.product.price*el.product.quantity;
 				return new Object({
 					id: el.product.id,
+					orderInstanceId: el.product.orderInstanceId,
 					name: el.product.name,
 					quantity: el.product.quantity,
 					price: el.product.price
@@ -1904,7 +2163,6 @@ router.get("/customer/detail", (req, res) => {
 	})
 
 })
-
 
 
 router.get("/customer/tempDetails", (req, res) => {

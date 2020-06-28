@@ -8,7 +8,8 @@ dotenv.config()
 module.exports.defaults = {
 	DB_CONNECTION_STRING: process.env.DB_CONNECTION_STRING,
 	MAXIMUM_SCHEDULE_PICKUP: process.env.MAXIMUM_SCHEDULE_PICKUP,
-	ADMIN_AUTH_TOKEN: process.env.ADMIN_AUTH_TOKEN
+	ADMIN_AUTH_TOKEN: process.env.ADMIN_AUTH_TOKEN,
+	MAXIMUM_RETURN_DURATION: process.env.MAXIMUM_RETURN_DURATION
 }
 
 
@@ -24,6 +25,7 @@ module.exports.toDate = (flutterDate) => {
 	return pickupDate
 
 }
+
 
 module.exports.slotsToString = (el) => {
 
@@ -56,7 +58,9 @@ module.exports.computeOrderStatus = (status, movements) => {
 		assigned: "Stitching in progress",
 		completed: "Ready to dispatch",
 		out: "Dispatched",
-		delivered: "Delivered"
+		delivered: "Delivered",
+		returned: "Returned",
+		cancelled: "Cancelled"
 	}
 
 	return compute[status];
@@ -82,6 +86,43 @@ module.exports.getWorker = function (type) {
 	}
 
 	return model[type]
+
+}
+
+
+module.exports.checkAndCreateSlot = async (pickupDate, area) => {
+
+	var schedule = require("./models/schedules")
+
+	arrangements = [
+		{start: 8, end: 12},
+		{start: 17, end: 21}
+	]
+
+	let slots = await schedule.find({
+		$expr: {
+			$and: [ {$eq: [ {$dayOfYear: pickupDate}, {$dayOfYear: "$date"}]}, {area: area} ]
+		}
+	});
+
+	// console.log(slots)
+
+	if(slots.length == 0) {
+
+		try {
+			let created = await schedule.create({arrangements, area: area, date: pickupDate})
+
+			return created
+
+		}
+		catch(err) {
+			console.log(err)
+			return -1
+		}
+
+	}
+
+	return slots[0];
 
 }
 

@@ -36,74 +36,24 @@ var model = mongoose.model("tests", schema);
 router.get("/", (req,res) => res.render("index", {title: "API"}))
 
 
-// router.post('/', function(req, res, next) {
+router.post("/practice", (req, res) => {
 
-// 	let token = req.headers.authorization.split(" ")[1];
-// 	let secret = process.env.secret;
+	const fs = require('fs');
+	var name = req.body.name;
+	var img = req.body.image;
 
-// 	console.log(token, secret)
+	console.log(name, img)
 
-// 	if(!token || !secret) {
-// 		return res.send("Incomplete details")
-// 	}
+	var realFile = Buffer.from(img,"base64");
 
-// 	jwt.verify(token, secret, (err, decoded) => {
-// 		if(err) {
-// 			console.log(err.name, ":", err.message)
-// 			res.status(500).json({
-// 				err: err.message
-// 			})
-// 		} else {
-// 			console.log("Decoded text:", decoded);
-// 			res.status(200).json({
-// 				name: decoded.name,
-// 				id: decoded.id
-// 			})
-// 		}
-// 	})
-
-// });
-
-router.get("/practice", (req, res) => {
-
-	console.log(req.body)
-
-	res.json(req.body)
+	fs.writeFile(`../data/orders/images/${name}`, realFile, function(err) {
+		if(err)
+			console.log(err);
+		else
+			console.log("File", name, "saved")
+	});
 
 })
-
-
-// router.post('/practice', upload.single("image"), (req, res) => {
-
-// 	model.find().exec().then( (resolve,reject) => {
-// 		console.log(resolve)
-// 	})
-
-// 	console.log(req.body, req.file)
-// 	model.updateOne(
-// 		{
-// 			"order_id": "2020051410",
-// 			// "_id": req.body.id
-// 		},
-// 		{
-// 			$set: {"name": req.file.filename}
-// 		}
-// 	).exec()
-// 	.then((resolve, reject) => {
-
-// 		console.log(resolve)
-// 		res.json({
-// 			status: 201,
-// 			result: resolve
-// 		})
-
-// 	})
-// 	.catch((err) => {
-// 		res.json(handler.internalServerError)
-// 	})
-
-// })
-
 
 
 

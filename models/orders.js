@@ -29,7 +29,7 @@ var schema = mongoose.Schema({
 	},
 	status: {
 		type: String,
-		enum: ["pending", "picked", "assigned", "completed", "out", "delivered"],
+		enum: ["pending", "picked", "assigned", "completed", "out", "delivered", "returned", "cancelled"],
 		required: true,
 		default: "pending"
 	},
@@ -63,7 +63,10 @@ var schema = mongoose.Schema({
 	},
 	active: {
 		status: {type: "Mixed", enum: [1, 0, "cancelled"], default: 1},
-		cancellation_reason: String
+		cancel: {
+			date: Date,
+			reason: String
+		}
 	},
 	pickup_id: {type: mongoose.ObjectId},
 	deliver_id: {type: mongoose.ObjectId},
@@ -124,6 +127,13 @@ var schema = mongoose.Schema({
 			"across back": Number,
 			"armole": Number
 		}
+	},
+
+	return: {
+		reason: String,
+		status: Boolean,
+		reference: mongoose.ObjectId
+		// date: Date
 	}
 
 })

@@ -17,9 +17,8 @@ app.set('view engine', 'ejs');
 
 app.use(logger('dev'));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: "7mb" }));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
 
 
 // app.use((req, res, next) => {
@@ -37,6 +36,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 // 	}
 
 // })
+
+
+app.use(express.static(path.join(__dirname, 'data')));
 
 
 app.use('/', indexRouter);
@@ -72,7 +74,7 @@ app.post("/practice/", (req, res) => {
 
 app.use(function(req, res, next) {
 // catch 404 and forward to error handler
-  next(createError(404));
+  next(createError(400));
 });
 
 
