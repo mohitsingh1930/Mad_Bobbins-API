@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 const dateFns = require("date-fns")
-// mongoose.connect(require("./errorHandlers").defaults.DB_CONNECTION_STRING, {useNewUrlParser: true})
+mongoose.connect(require("./errorHandlers").defaults.DB_CONNECTION_STRING, {useNewUrlParser: true})
 
 // mongoose.connect("mongodb://localhost/practice", {useNewUrlParser: true})
 
@@ -96,21 +96,23 @@ var schema = new mongoose.Schema({
 
 var model = mongoose.model("test", schema);
 
-const fs = require('fs')
-var name = "TestImage.jpg";
-var img = "/9j/4QFcRXhpZgAATU0AKgAAAAgABwEAAAQAAAABAAACFQEQAAIAAAAKAAAAYgEBAAQAAAABAAABkAEPAAIAAAAHAAAAbIdpAAQAAAABAAAAhwESAAMAAAABAAAAAAEyAAIAAAAUAAAAcwAAAAByZWFsbWUgVTEAUmVhbG1lADIwMjA6MDY6MjUgMTg6MDQ6NTMAAAekAwADAAAAAQAAAACIJwADAAAAAQVBAACSCgAFAAAAAQAAAOGCmgAFAAAAAQAAAOmSCQADAAAAAQAAAACSCAAEAAAAAQAAAACCnQAFAAAAAQAAAPEAAAAAAAANPgAAA+gAAAH0AAAnEAAAVfAAACcQAAQBEAACAAAACgAAAS8BDwACAAAABwAAATkBEgADAAAAAQAAAAABMgACAAAAFAAAAUAAAAAAcmVhbG1lIFUxAFJlYWxtZQAyMDIwOjA2OjI1IDE4OjA0OjUzAP/gABBKRklGAAEBAAABAAEAAP/bAEMAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/bAEMBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAf/AABEIAZACFQMBIgACEQEDEQH/xAAfAAAABwEBAQEBAAAAAAAAAAADBAUGBwgJAgABCgv/xAA4EAACAgICAgICAgEFAAEDAAsCAwEEBQYSEwcRCBQhIgAjFQkWJDEyFwozQSU0QhhDUTVSU2GC/8QAHQEAAwEBAQEBAQEAAAAAAAAAAAECAwQFBgcICf/EADoRAAECBAUCBQMDBAIBBQEBAAERIQAxQVECYXGB8JGhAxKxwdEi4fEEEzIFQlJyYoKyBgcUkqIWwv/aAAwDAQACEQMRAD8Aoj83NBZp3kxzVVmhT2GWZKn6FcIlUOFULW4yH0SmTwOSgfYc5kmKCGRSWoV"
+
+prices.insertMany([
+	{
+		name: "Dori",
+		type: "extra-material"
+	},
+	{
+		name: "Piping",
+		type: "extra-material"
+	}
+])
+.then(resolve => {
+	console.log(resolve)
+})
+.catch(err => console.log(err))
 
 
-async function main() {
-
-	let today = new Date()
-	let pickupDate = dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate()), 1)
-	let result = await handler.checkAndCreateSlot(pickupDate, "Burari")
-	console.log(result)
-
-}
-
-main()
 // require("./models/tailors").updateMany({}, {active: 1}).exec()
 // .then(resolve => console.log(resolve))
 // .catch(err => console.log(err))

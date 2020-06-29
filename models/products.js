@@ -9,7 +9,8 @@ autoIncrement.initialize(mongoose.createConnection(defaults.DB_CONNECTION_STRING
 var schema = mongoose.Schema({
 
 	_id: {
-		type: Number
+		type: Number,
+		required: true
 	},
 	name: {
 		type: String,
