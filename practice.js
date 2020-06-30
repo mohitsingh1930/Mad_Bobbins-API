@@ -98,12 +98,14 @@ var schema = new mongoose.Schema({
 
 var model = mongoose.model("test", schema);
 
+let obj = {
+	name: "obj1",
+	obj2: {
+		name: "obj2"
+	}
+}
 
-let value = [ {id: 18}].reduce((accumulator, currentValue) => {
-	return accumulator + ", " + handler.addons[currentValue.id]
-}, "").slice(2)
-
-console.log(value)
+console.log(obj??obj3)
 
 // require("./models/tailors").updateMany({}, {active: 1}).exec()
 // .then(resolve => console.log(resolve))
