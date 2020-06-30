@@ -24,7 +24,11 @@ var schema = mongoose.Schema({
 	image: {
 		type: String
 	},
-	coverage: [{type: String, enum: ["top", "bottom", "blouse"]}]
+	coverage: [{type: String, enum: ["top", "bottom", "blouse"]}],
+	type: {
+		type: String,
+		enum: ["product", "extra-material"]
+	}
 
 })
 

@@ -10,7 +10,7 @@ var errorHandler = require("../errorHandlers")
 
 router.get("/", (req, res) => {
 
-	product.find({}, {name: 1, image: 1}).sort({name: -1}).exec()
+	product.find({type: "product"}, {name: 1, image: 1}).sort({name: -1}).exec()
 	.then((resolve) => {
 
 		var temp_arr = [];

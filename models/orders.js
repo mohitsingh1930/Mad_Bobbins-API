@@ -55,6 +55,13 @@ var schema = mongoose.Schema({
 			checked: {type: Boolean, required: true, default: false}
 		}
 	},
+	extras: [
+		{
+			type: {type: String},
+			id: {type: "Mixed"},
+			price_id: {type: mongoose.ObjectId, ref: "prices"}
+		}
+	],
 	payment: {
 		price_id: {type: mongoose.ObjectId, ref: "prices"},
 		design_price: Number,
@@ -72,28 +79,6 @@ var schema = mongoose.Schema({
 	pickup_id: {type: mongoose.ObjectId},
 	deliver_id: {type: mongoose.ObjectId},
 	temp_id: {type: mongoose.ObjectId, ref: "temporary_users"},
-	temp_user: {
-		name: {type: String},
-		age: {type: Number, max:100},
-		contact: {
-			phone_no: {type: String, maxlength: 13},
-			address: {
-				loc: {
-					type: {
-						type: String,
-						enum: ['Point'],
-						default: 'Point'
-					},
-					coordinates: {type: [Number]} 		//longitude and latitude
-				},
-				text: {type: String}
-			},
-			email: {
-				type: String
-			}
-		}
-	},
-
 	measurements: {
 		top: {
 			"length": Number,
@@ -129,6 +114,8 @@ var schema = mongoose.Schema({
 			"armole": Number
 		}
 	},
+
+	description: String,
 
 	return: {
 		reason: String,

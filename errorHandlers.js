@@ -13,6 +13,12 @@ module.exports.defaults = {
 }
 
 
+// product ids of addons
+module.exports.addons = {
+	18: "Piping",
+	19: "Dori"
+}
+
 
 mongoose.connect(process.env.DB_CONNECTION_STRING, {useUnifiedTopology: true, useNewUrlParser: true})
 

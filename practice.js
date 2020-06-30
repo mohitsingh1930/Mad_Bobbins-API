@@ -85,6 +85,8 @@ mongoose.connect(require("./errorHandlers").defaults.DB_CONNECTION_STRING, {useN
 
 var handler = require("./errorHandlers");
 const { product } = require("./models/products");
+const prices = require("./models/prices");
+const { order } = require("./models/orders");
 
 var schema = new mongoose.Schema({
 	name: String,
@@ -97,21 +99,11 @@ var schema = new mongoose.Schema({
 var model = mongoose.model("test", schema);
 
 
-prices.insertMany([
-	{
-		name: "Dori",
-		type: "extra-material"
-	},
-	{
-		name: "Piping",
-		type: "extra-material"
-	}
-])
-.then(resolve => {
-	console.log(resolve)
-})
-.catch(err => console.log(err))
+let value = [ {id: 18}].reduce((accumulator, currentValue) => {
+	return accumulator + ", " + handler.addons[currentValue.id]
+}, "").slice(2)
 
+console.log(value)
 
 // require("./models/tailors").updateMany({}, {active: 1}).exec()
 // .then(resolve => console.log(resolve))

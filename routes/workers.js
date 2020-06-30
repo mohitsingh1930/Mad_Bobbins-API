@@ -134,7 +134,10 @@ router.get("/tailor", (req, res) => {
 				let: {tailor_id: "$_id"},
 				pipeline: [
 					{
-						$match: {$expr: {$eq: ["$tailor_id", "$$tailor_id"]}}
+						$match: {
+							$expr: {$eq: ["$tailor_id", "$$tailor_id"]},
+							product_id: {$nin: handler.addons}
+						}
 					},
 					{
 						$sort: {amount: 1}

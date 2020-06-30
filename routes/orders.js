@@ -202,6 +202,63 @@ router.get("/tailor/pendingDetails", (req, res) => {
 })
 
 
+router.get("/tailor/productExtras", (req, res) => {
+
+	let id = req.query.id;
+
+	order.aggregate([
+		{
+			$match: {
+				_id: mongoose.Types.ObjectId(id)
+			}
+		},
+		{
+			$project: {
+				addons: "$extras",
+				description: 1
+			}
+		},
+		{
+			$unwind: "$addons"
+		},
+		{
+			$lookup: {
+				from: "products",
+				foreignField: "_id",
+				localField: "addons.id",
+				as: "product"
+			}
+		},
+		{
+			$group: {
+				_id: {
+					_id: "$_id",
+					description: "$description"
+				},
+				addons: {$push: {$arrayElemAt: ["$product.name", 0]}}
+			}
+		}
+	]).exec()
+	.then(resolve => {
+
+		console.log(resolve)
+
+		res.status(200).json({
+			addons: resolve[0].addons,
+			description: resolve[0]._id.description
+		})
+
+	})
+	.catch(err => {
+
+		console.log(err)
+		res.status(500).json(handler.internalServerError)
+
+	})
+
+})
+
+
 router.get("/tailor/productImage", (req, res) => {
 
 	let id = req.query.id;
@@ -498,18 +555,17 @@ router.get("/pickup/measurements", (req, res) => {
 
 	let {userId: tempUserId, productId} = req.query;
 
+	// measurement of last data of that user
+	let lastSavedMeasurement = 	order.find({"temp_id": tempUserId, "product.id": productId})
+	.sort({"dates.order": -1, "order_id": -1})
+	.limit(1)
+	.exec()
+
+	let coverage = products.find({_id: productId}, {coverage: 1}).exec()
+
 	Promise.all([
-
-		// measurement of last data of that user
-		order.find({"temp_id": tempUserId, "product.id": productId})
-		.sort({"dates.order": -1})
-		.limit(1)
-		.exec(),
-
-		// find coverage property of the product
-		product.find({_id: productId}, {coverage: 1})
-		.exec()
-
+		lastSavedMeasurement,
+		coverage
 	])
 	.then((resolve) => {
 
@@ -556,16 +612,32 @@ router.get("/pickup/measurements", (req, res) => {
 })
 
 
-router.post("/pickup/measurements", (req, res) => {
+router.post("/pickup/productDetails", (req, res) => {
+
+	// console.log(req.body)
 
 	let {id, top, bottom, blouse} = req.body;
 
-	if(!id)
-		return res.status(406).json({
-			error_msg: "orderInstanceId not provided"
-		})
+	let {addons, designPrice, description} = req.body
 
-	console.log(top,"\n", bottom,"\n", blouse)
+	// setting up vairables
+	let temp = [];
+	addons = JSON.parse(addons)
+	for(let item of addons) {
+		if(item.value)
+			temp.push(Number(item.id))
+	}
+	addons = temp;
+
+
+	if(!id || !addons)
+	return res.status(406).json({
+		error_msg: "Something is missing"
+	})
+
+	designPrice = designPrice == ""?null:Number(designPrice)
+
+	console.log(top, bottom, blouse, addons, designPrice)
 
 	let measurements = {
 
@@ -576,9 +648,9 @@ router.post("/pickup/measurements", (req, res) => {
 	};
 
 	let result = {
-		top: top?{}:undefined,
-		bottom: bottom?{}:undefined,
-		blouse: blouse?{}:undefined
+		top: top.length?{}:undefined,
+		bottom: bottom.length?{}:undefined,
+		blouse: blouse.length?{}:undefined
 	}
 
 	for(let key of Object.keys(measurements)) {
@@ -589,32 +661,110 @@ router.post("/pickup/measurements", (req, res) => {
 
 	}
 
-	console.log("Measurements:", result)
 
-	// return res.status(500).json({
-	// 	error_msg: "Halt"
-	// })
-	// for(let element in measurements)
-	// 	obj[element.name] = element.value
-
+	// if price if given then update
+	let designPriceUpdate = designPrice?
 	order.updateOne(
 		{
 			_id: mongoose.Types.ObjectId(id)
 		},
 		{
-			"measurements": result
+			// "measurements": result,
+			// "extras": addons,
+			"payment.design_price": designPrice,
 		}
 	).exec()
+	:
+	Promise.resolve("Design Price not given")
+
+	// get addons price for this tailor
+	let addonsPricesFetch = order.aggregate([
+		{
+			$match:	{_id: mongoose.Types.ObjectId(id)}
+		},
+		{
+			$lookup: {
+				from: "prices",
+				let: {tailor_id: "$tailor_id"},
+				pipeline: [
+					{
+						$match: {
+							$expr: {
+								$eq: ["$tailor_id", "$$tailor_id"]
+							},
+							active: true,
+							product_id: {$in: addons}
+						}
+					}
+				],
+				as: "addon_prices"
+			}
+		},
+		{
+			$project: {
+				addons_prices: "$addon_prices"
+			}
+		}
+	]).exec()
+
+	Promise.all([designPriceUpdate, addonsPricesFetch])
+	.then(resolves => {
+
+		console.log("resolves:", resolves[0])
+		console.log(resolves[1])
+
+		resolve = resolves[1]
+		// console.log(resolve)
+
+		resolve = resolve[0].addons_prices
+
+		let addonsPrice = 0;
+
+		let addons = resolve.map(el => {
+			addonsPrice += el.amount;
+			return {
+				type: "extra-material",
+				id: el.product_id
+			}
+		})
+
+		// console.log(addons, addonsPrice)
+
+		// return Promise.resolve("Intermediate")
+
+		let updateQuery = {
+			"measurements": result,
+			"extras": addons,
+			"description": description
+		}
+
+		if(designPrice) {
+			updateQuery["payment.current_price"] = designPrice + addonsPrice
+		}
+		else {
+			updateQuery["$inc"] = {"payment.current_price": addonsPrice}
+		}
+
+
+		return order.updateOne(
+			{
+				_id: mongoose.Types.ObjectId(id)
+			},
+			updateQuery
+		).exec()
+
+	})
 	.then((resolve) => {
 
 		console.log(resolve)
 		res.status(200).json({
-			msg: "Measurements Updated"
+			msg: "Order Updated"
 		})
 
 	})
 	.catch((err) => {
 
+		console.log(err)
 		res.status(500).json(handler.internalServerError)
 
 	})
@@ -2018,7 +2168,8 @@ router.get("/customer/detail", (req, res) => {
 					"movements": "$movements",
 					"payment": "$payment",
 					"temp_id": "$temp_id",
-					"return": "$return"
+					"return": "$return",
+					"addons": "$extras"
 					// "daysToComplete": {$arrayElemAt: ["$tailor.daysToComplete", 0]},
 					// "arrangement": {$filter: ["$schedules"]}
 				},
@@ -2074,8 +2225,10 @@ router.get("/customer/detail", (req, res) => {
 					id: {$arrayElemAt: ["$productDetails._id", 0]},
 					orderInstanceId: "$_id._id",
 					name: {$arrayElemAt: ["$productDetails.name", 0]},
+					image: "$_id.product.image",
 					quantity: "$quantity",
 					price: "$_id.payment.current_price",
+					addons: "$_id.addons"
 				},
 				return: "$_id.return",
 				temp_user: {$arrayElemAt: ["$temp_user", 0]},
@@ -2142,7 +2295,9 @@ router.get("/customer/detail", (req, res) => {
 					orderInstanceId: el.product.orderInstanceId,
 					name: el.product.name,
 					quantity: el.product.quantity,
-					price: el.product.price
+					price: el.product.price,
+					image: el.product.image,
+					addons: el.product.addons.reduce((accumulator, currentValue) => accumulator + ", " + handler.addons[currentValue.id], "").slice(2)
 				})
 			}),
 			totalPrice: total,
