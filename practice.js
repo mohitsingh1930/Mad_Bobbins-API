@@ -98,14 +98,14 @@ var schema = new mongoose.Schema({
 
 var model = mongoose.model("test", schema);
 
-let obj = {
-	name: "obj1",
-	obj2: {
-		name: "obj2"
-	}
-}
+// let obj = {
+// 	name: "obj1",
+// 	obj2: {
+// 		name: "obj2"
+// 	}
+// }
 
-console.log(obj??obj3)
+// console.log(obj??obj3)
 
 // require("./models/tailors").updateMany({}, {active: 1}).exec()
 // .then(resolve => console.log(resolve))

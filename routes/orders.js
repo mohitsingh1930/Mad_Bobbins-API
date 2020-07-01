@@ -218,34 +218,34 @@ router.get("/tailor/productExtras", (req, res) => {
 				description: 1
 			}
 		},
-		{
-			$unwind: "$addons"
-		},
-		{
-			$lookup: {
-				from: "products",
-				foreignField: "_id",
-				localField: "addons.id",
-				as: "product"
-			}
-		},
-		{
-			$group: {
-				_id: {
-					_id: "$_id",
-					description: "$description"
-				},
-				addons: {$push: {$arrayElemAt: ["$product.name", 0]}}
-			}
-		}
+		// {
+		// 	$unwind: "$addons"
+		// },
+		// {
+		// 	$lookup: {
+		// 		from: "products",
+		// 		foreignField: "_id",
+		// 		localField: "addons.id",
+		// 		as: "product"
+		// 	}
+		// },
+		// {
+		// 	$group: {
+		// 		_id: {
+		// 			_id: "$_id",
+		// 			description: "$description"
+		// 		},
+		// 		addons: {$push: {$arrayElemAt: ["$product.name", 0]}}
+		// 	}
+		// }
 	]).exec()
 	.then(resolve => {
 
-		console.log(resolve)
+		console.log(JSON.stringify(resolve))
 
 		res.status(200).json({
-			addons: resolve[0].addons,
-			description: resolve[0]._id.description
+			addons: resolve.map(el => el.addons.map(el2 => handler.addons[el2.id])[0] || []),
+			description: resolve.map(el => el.description)[0] || ""
 		})
 
 	})
@@ -556,7 +556,7 @@ router.get("/pickup/measurements", (req, res) => {
 	let {userId: tempUserId, productId} = req.query;
 
 	// measurement of last data of that user
-	let lastSavedMeasurement = 	order.find({"temp_id": tempUserId, "product.id": productId})
+	let lastSavedMeasurement = 	order.find({"temp_id": tempUserId, "product.id": productId, "measurements": {$exists: true}})
 	.sort({"dates.order": -1, "order_id": -1})
 	.limit(1)
 	.exec()
@@ -569,16 +569,62 @@ router.get("/pickup/measurements", (req, res) => {
 	])
 	.then((resolve) => {
 
+		// console.log(resolve[0][0])
+
 		let coverage = resolve[1][0].coverage;
-		resolve = resolve[0][0].measurements;
-		console.log("Resolve:", resolve)
-		console.log("Coverage:", coverage)
+		// console.log("Resolve:", resolve)
+		// console.log("Coverage:", coverage)
 
 
-		delete resolve.$init
-		delete resolve.top.$init
-		delete resolve.bottom.$init
-		delete resolve.blouse.$init
+		if(resolve[0][0]) {
+
+			resolve = resolve[0][0].measurements
+
+			delete resolve.$init
+			delete resolve.top.$init
+			delete resolve.bottom.$init
+			delete resolve.blouse.$init
+
+		}
+		else {
+
+			resolve = {
+				top: {
+					"length": 0,
+					"teera": 0,
+					"Upper chest": 0,
+					"middle chest": 0,
+					"lower chest": 0,
+					"waist": 0,
+					"hip": 0,
+					"sleeves length": 0,
+					"sleeves botton": 0,
+					"front neck": 0,
+					"back neck": 0,
+					"armole": 0
+				},
+				bottom: {
+					"length": 0,
+					"hip": 0,
+					"bottom": 0,
+					"bottom width": 0,
+					"thigh": 0,
+					"waist": 0
+				},
+				blouse: {
+					"length": 0,
+					"upper chest": 0,
+					"middle chest": 0,
+					"lower chest": 0,
+					"sleeves length": 0,
+					"sleeves bottom": 0,
+					"waist": 0,
+					"across back": 0,
+					"armole": 0
+				}
+			}
+
+		}
 
 		let result = []
 
@@ -1397,7 +1443,8 @@ router.get("/delivery/pending", (req, res) => {
 				product: {
 					$push: {
 						id: "$product.id",
-						orderInstanceId: "$_id"
+						orderInstanceId: "$_id",
+						image: "$product.image"
 					}
 				}
 			}
@@ -1443,7 +1490,8 @@ router.get("/delivery/pending", (req, res) => {
 					$push: {
 						"id": "$product.id",
 						"name": {$arrayElemAt: ["$products.name", 0]},
-						"orderInstanceId": "$product.orderInstanceId"
+						"orderInstanceId": "$product.orderInstanceId",
+						"image": "$product.image"
 					}
 				}
 			}
@@ -1942,6 +1990,7 @@ router.post('/customer/return', async (req, res) => {
 				"dates.pickup": pickupDate,
 				// addresss_id: product.addresss_id,
 				arrangement_id: slot.arrangements[0]._id,		//schedule id
+				measurements: order.measurements,
 				payment: {
 					price_id: order.payment.price_id,
 					current_price: 0,
