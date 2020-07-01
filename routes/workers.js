@@ -136,8 +136,18 @@ router.get("/tailor", (req, res) => {
 					{
 						$match: {
 							$expr: {$eq: ["$tailor_id", "$$tailor_id"]},
-							product_id: {$nin: handler.addons}
 						}
+					},
+					{
+						$lookup: {
+							from: "products",
+							foreignField: "_id",
+							localField: "product_id",
+							as: "product"
+						}
+					},
+					{
+						$match: {"product.type": "product"}
 					},
 					{
 						$sort: {amount: 1}
