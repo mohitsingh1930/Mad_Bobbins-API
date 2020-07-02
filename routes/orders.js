@@ -2346,7 +2346,7 @@ router.get("/customer/detail", (req, res) => {
 					quantity: el.product.quantity,
 					price: el.product.price,
 					image: el.product.image,
-					imageStream: el.product.imageStream,
+					imageStream: el.product.imageStream || "",
 					addons: el.product.addons?(el.product.addons.reduce((accumulator, currentValue) => accumulator + ", " + handler.addons[currentValue.id], "").slice(2)):null
 				})
 			}),
