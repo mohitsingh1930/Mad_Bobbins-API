@@ -9,7 +9,8 @@ var schema = mongoose.Schema({
 	product: {
 		type: {type: String, enum: ["basic", "catalog"], required: true},
 		id: {type: Number, required: true, ref: "products"},
-		image: String
+		image: String,
+		imageStream: String
 	},
 	user_id: {type: mongoose.ObjectId, required: true},
 	tailor_id: {type: mongoose.ObjectId},

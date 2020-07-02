@@ -119,7 +119,7 @@ router.get("/tailor/pendingDetails", (req, res) => {
 				product: {
 					$push: {
 						id: "$product.id",
-						image: "$product.image",
+						image: "$product.imageStream",
 						orderInstanceId: "$_id"
 					}
 				}
@@ -273,7 +273,7 @@ router.get("/tailor/productImage", (req, res) => {
 		else {
 
 			res.status(200).json({
-				result: resolve[0].product.image?resolve[0].product.image:""
+				result: resolve[0].product.imageStream?resolve[0].product.imageStream:""
 			})
 
 		}
@@ -1253,41 +1253,18 @@ router.post("/pickup/productImage", (req, res) => {
 	}
 
 
-	const fs = require('fs');
-
-
 	// console.log(name, id)
 
-	var realFile = Buffer.from(img, "base64");
 
-	new Promise((resolve, reject) => {
-
-		fs.writeFile( __dirname + `/../data/images/orders/${name}`, realFile, function(err) {
-			if(err) {
-				console.log(err);
-				reject(err)
-			}
-			else {
-				console.log("File", name, "Saved")
-				resolve(1)
-			}
-
-		});
-
-	})
-	.then(resolve => {
-
-		return order.updateOne(
-			{
-				// "order_id": req.body.orderId,
-				"_id": mongoose.Types.ObjectId(id)
-			},
-			{
-				$set: {"product.image": `/images/orders/${name}`}
-			}
-		).exec()
-
-	})
+	order.updateOne(
+		{
+			// "order_id": req.body.orderId,
+			"_id": mongoose.Types.ObjectId(id)
+		},
+		{
+			$set: {"product.image": `/images/orders/${name}`, "product.imageStream": img}
+		}
+	).exec()
 	.then(resolve => {
 
 		console.log(resolve)
@@ -2297,6 +2274,7 @@ router.get("/customer/detail", (req, res) => {
 					orderInstanceId: "$_id._id",
 					name: {$arrayElemAt: ["$productDetails.name", 0]},
 					image: "$_id.product.image",
+					imageStream: "$_id.product.imageStream",
 					quantity: "$quantity",
 					price: "$_id.payment.current_price",
 					addons: "$_id.addons"
@@ -2316,7 +2294,7 @@ router.get("/customer/detail", (req, res) => {
 	]).exec()
 	.then(resolve => {
 
-		console.log(resolve)
+		// console.log(resolve)
 
 		if(resolve.length === 0) {
 			res.status(404).json({
@@ -2368,6 +2346,7 @@ router.get("/customer/detail", (req, res) => {
 					quantity: el.product.quantity,
 					price: el.product.price,
 					image: el.product.image,
+					imageStream: el.product.imageStream,
 					addons: el.product.addons?(el.product.addons.reduce((accumulator, currentValue) => accumulator + ", " + handler.addons[currentValue.id], "").slice(2)):null
 				})
 			}),

@@ -17,7 +17,7 @@ var storage = multer.diskStorage({
 var upload = multer({storage: storage})
 
 const mongoose = require("mongoose")
-// mongoose.connect("mongodb://localhost/practice", {useNewUrlParser: true})
+mongoose.connect("mongodb://localhost/practice", {useNewUrlParser: true})
 
 
 
@@ -38,20 +38,37 @@ router.get("/", (req,res) => res.render("index", {title: "API"}))
 
 router.post("/practice", (req, res) => {
 
-	const fs = require('fs');
+	// const fs = require('fs');
 	var name = req.body.name;
 	var img = req.body.image;
 
 	console.log(name, img)
 
-	var realFile = Buffer.from(img,"base64");
+	// var realFile = Buffer.from(img,"base64");
 
-	fs.writeFile(`../data/orders/images/${name}`, realFile, function(err) {
-		if(err)
-			console.log(err);
-		else
-			console.log("File", name, "saved")
-	});
+	let schema = mongoose.Schema({
+
+		name: String,
+		image: String
+
+	})
+	let model = mongoose.model("test", schema)
+
+	model.create({
+		name,
+		image: img
+	})
+	.then(resolve => console.log(resolve))
+	.catch(err => console.log(err))
+
+	// fs.writeFile(`../data/orders/images/${name}`, realFile, function(err) {
+	// 	if(err)
+	// 		console.log(err);
+	// 	else
+	// 		console.log("File", name, "saved")
+	// });
+
+	res.sendStatus(200)
 
 })
 
