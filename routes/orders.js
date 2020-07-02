@@ -244,7 +244,7 @@ router.get("/tailor/productExtras", (req, res) => {
 		console.log(JSON.stringify(resolve))
 
 		res.status(200).json({
-			addons: resolve.map(el => el.addons.map(el2 => handler.addons[el2.id])[0] || []),
+			addons: resolve.map(el => el.addons?el.addons.map(el2 => handler.addons[el2.id]):[] )[0] || [],
 			description: resolve.map(el => el.description)[0] || ""
 		})
 
