@@ -904,7 +904,8 @@ router.get("/pickup/pending/details", (req, res) => {
 					"order_id": "$order_id",
 					"temp_id": "$temp_id",
 					"status": "$status",
-					"dates": "$dates"
+					"dates": "$dates",
+					"arrangement_id": "$arrangement_id"
 				},
 				product: {
 					$push: {
@@ -920,6 +921,25 @@ router.get("/pickup/pending/details", (req, res) => {
 				foreignField: "_id",
 				localField: "_id.temp_id",
 				as: "temp_user"
+			}
+		},
+		{
+			$lookup: {
+				from: "schedules",
+				let: {arrangement_id: "$_id.arrangement_id", pickup_date: "$_id.dates.pickup"},
+				pipeline: [
+					{
+						$match: {
+							$expr: {
+								$eq: [{$dayOfYear: "$date"}, {$dayOfYear: "$$pickup_date"}]
+							}
+						},
+					},
+					{
+						$project: {arrangements: "$arrangements"}
+					}
+				],
+				as: "schedules"
 			}
 		},
 		{
@@ -939,7 +959,8 @@ router.get("/pickup/pending/details", (req, res) => {
 					"order_id": "$_id.order_id",
 					"dates": "$_id.dates",
 					"status": "$_id.status",
-					"temp_user": {$arrayElemAt: ["$temp_user", 0]}
+					"temp_user": {$arrayElemAt: ["$temp_user", 0]},
+					"slot": {$arrayElemAt: [{$filter: {input: {$arrayElemAt: ["$schedules.arrangements", 0]}, as: "element", cond: {$eq: ["$$element._id", "$_id.arrangement_id"]}} }, 0] }
 				},
 				"products": {
 					$push: {
@@ -956,12 +977,13 @@ router.get("/pickup/pending/details", (req, res) => {
 	]).exec()
 	.then((resolve) => {
 
-		// console.log("Result:", resolve);
+		console.log("Result:", resolve);
 
 		resolve = resolve.map(order => new Object({
 			orderId: order._id.order_id,
 			pickupDate: dateFns.format(new Date(order._id.dates.pickup), "dd-MM-yyyy"),
 			status: order._id.status,
+			slot: handler.slotsToString(order._id.slot),
 			user: {
 				id: order._id.temp_user._id,
 				name: order._id.temp_user.name,
