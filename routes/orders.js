@@ -983,7 +983,7 @@ router.get("/pickup/pending/details", (req, res) => {
 			orderId: order._id.order_id,
 			pickupDate: dateFns.format(new Date(order._id.dates.pickup), "dd-MM-yyyy"),
 			status: order._id.status,
-			slot: handler.slotsToString(order._id.slot),
+			slotString: handler.slotsToString(order._id.slot).string,
 			user: {
 				id: order._id.temp_user._id,
 				name: order._id.temp_user.name,
