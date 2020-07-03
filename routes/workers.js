@@ -201,29 +201,33 @@ router.get("/tailor/detailedPrices", (req, res) => {
 	tailor.aggregate([
 		{
 			'$lookup': {
-				'from': 'prices', 
-				'foreignField': 'tailor_id', 
-				'localField': '_id', 
+				'from': 'prices',
+				'foreignField': 'tailor_id',
+				'localField': '_id',
 				'as': 'productPrice'
 			}
 		}, {
 			'$unwind': '$productPrice'
 		}, {
 			'$lookup': {
-				'from': 'products', 
-				'foreignField': '_id', 
-				'localField': 'productPrice.product_id', 
+				'from': 'products',
+				'foreignField': '_id',
+				'localField': 'productPrice.product_id',
 				'as': 'product'
 			}
 		}, {
+			"$match": {
+				"product.0.type": "product"
+			}
+		}, {
 			'$project': {
-				'tailorName': '$name', 
+				'tailorName': '$name',
 				'productDetails': {
 					'id': {
 						'$arrayElemAt': [
 							'$product._id', 0
 						]
-					}, 
+					},
 					'name': {
 						'$arrayElemAt': [
 							'$product.name', 0

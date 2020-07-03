@@ -561,7 +561,7 @@ router.get("/pickup/measurements", (req, res) => {
 	.limit(1)
 	.exec()
 
-	let coverage = products.find({_id: productId}, {coverage: 1}, (err, res) => 1).exec()
+	let coverage = products.find({_id: productId}, {coverage: 1}).exec()
 
 	Promise.all([
 		lastSavedMeasurement,

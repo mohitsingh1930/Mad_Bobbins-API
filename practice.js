@@ -7,77 +7,83 @@ mongoose.connect(require("./errorHandlers").defaults.DB_CONNECTION_STRING, {useN
 
 
 
-// var price = require("./models/prices")
+var price = require("./models/prices")
 // var product = require("./models/products").product
 // console.log(product)
+/**
+* Paste one or more documents here
+*/
+/**
+* Paste one or more documents here
+*/
 
-// price.create(
-// 		[
-// 			// simple : full,half,no
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 2,
-// 			"amount": 1000
-// 		},
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 12,
-// 			"amount": 550
-// 		},
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 10,
-// 			"amount": 300
-// 		},
-// 		// simple with pant: full,half,no
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 17,
-// 			"amount": 1200
-// 		},
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 16,
-// 			"amount": 1000
-// 		},
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 1,
-// 			"amount": 600
-// 		},
-// 		// simple blouse: no,yes
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 8,
-// 			"amount": 200
-// 		},
+price.create(
+		[
+			// simple : full,half,no
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 13,
+			"amount": 900
+		},
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 5,
+			"amount": 500
+		},
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 11,
+			"amount": 300
+		},
+		// simple with pant: full,half,no
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 20,
+			"amount": 1000
+		},
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 21,
+			"amount": 750
+		},
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 22,
+			"amount": 600
+		},
+		// simple blouse: no,yes
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 9,
+			"amount": 300
+		},
 
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 15,
-// 			"amount": 400
-// 		},
-// 		// kurti: yes, no
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 6,
-// 			"amount": 400
-// 		},
-// 		{
-// 			"tailor_id": "5ee38ff3844a883ee54a1612",
-// 			"product_id": 4,
-// 			"amount": 200
-// 		}
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 7,
+			"amount": 400
+		},
+		// kurti: yes, no
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 23,
+			"amount": 420
+		},
+		{
+			"tailor_id": "5ee38467844a883ee54a1607",
+			"product_id": 24,
+			"amount": 220
+		}
 
-// 	],
-// 	function (err, result) {
-// 		if(err) {
-// 				console.log("Error", err)
-// 			} else {
-// 					console.log("Result", result)
-// 		}
-// 	}
-// )
+	],
+	function (err, result) {
+		if(err) {
+				console.log("Error", err)
+			} else {
+					console.log("Result", result)
+		}
+	}
+)
 // .then((result) => {
 // 		console.log("Result:", result)
 
