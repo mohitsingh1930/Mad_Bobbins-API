@@ -105,27 +105,27 @@ var schema = new mongoose.Schema({
 var model = mongoose.model("test", schema);
 
 
-product.find({active: true, type: "product"})
-// .sort({
-// 	name:
+// product.find({active: true, type: "product"}).select({name:1, image: 1})
+// // .sort({
+// // 	name:
+// // })
+// .exec()
+// .then(async resolve => {
+
+// 	console.log(resolve)
+
+// 	let list = resolve.map(el => new Object({_id: el._id, name: el.name, image: "/" + el.image.split('data/')[1]}))
+
+// 	console.log(list.length)
+// 	for(let item of list) {
+
+// 		console.log(item.name, item.image)
+// 		let updated = await product.updateOne({_id: item._id}, {$set: {"image": item.image}})
+
+// 	}
+
 // })
-.exec()
-.then(async resolve => {
-
-	console.log(resolve)
-
-	// let list = resolve.map(el => new Object({_id: el._id, name: el.name, image: "https://drive.google.com/uc?export=download&id=" + el.image.split('/')[5]}))
-
-	// console.log(list.length)
-	// for(let item of list) {
-
-	// 	console.log(item.name, item.image)
-	// 	let updated = await product.updateOne({_id: item._id}, {$set: {"image": item.image}})
-
-	// }
-
-})
-.catch(err => console.log(err))
+// .catch(err => console.log(err))
 
 
 
