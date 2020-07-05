@@ -17,73 +17,73 @@ var price = require("./models/prices")
 * Paste one or more documents here
 */
 
-price.create(
-		[
-			// simple : full,half,no
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 13,
-			"amount": 900
-		},
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 5,
-			"amount": 500
-		},
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 11,
-			"amount": 300
-		},
-		// simple with pant: full,half,no
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 20,
-			"amount": 1000
-		},
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 21,
-			"amount": 750
-		},
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 22,
-			"amount": 600
-		},
-		// simple blouse: no,yes
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 9,
-			"amount": 300
-		},
+// price.create(
+// 		[
+// 			// simple : full,half,no
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 13,
+// 			"amount": 900
+// 		},
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 5,
+// 			"amount": 500
+// 		},
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 11,
+// 			"amount": 300
+// 		},
+// 		// simple with pant: full,half,no
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 20,
+// 			"amount": 1000
+// 		},
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 21,
+// 			"amount": 750
+// 		},
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 22,
+// 			"amount": 600
+// 		},
+// 		// simple blouse: no,yes
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 9,
+// 			"amount": 300
+// 		},
 
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 7,
-			"amount": 400
-		},
-		// kurti: yes, no
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 23,
-			"amount": 420
-		},
-		{
-			"tailor_id": "5ee38467844a883ee54a1607",
-			"product_id": 24,
-			"amount": 220
-		}
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 7,
+// 			"amount": 400
+// 		},
+// 		// kurti: yes, no
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 23,
+// 			"amount": 420
+// 		},
+// 		{
+// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"product_id": 24,
+// 			"amount": 220
+// 		}
 
-	],
-	function (err, result) {
-		if(err) {
-				console.log("Error", err)
-			} else {
-					console.log("Result", result)
-		}
-	}
-)
+// 	],
+// 	function (err, result) {
+// 		if(err) {
+// 				console.log("Error", err)
+// 			} else {
+// 					console.log("Result", result)
+// 		}
+// 	}
+// )
 // .then((result) => {
 // 		console.log("Result:", result)
 
@@ -104,18 +104,28 @@ var schema = new mongoose.Schema({
 
 var model = mongoose.model("test", schema);
 
-// let obj = {
-// 	name: "obj1",
-// 	obj2: {
-// 		name: "obj2"
-// 	}
-// }
 
-// console.log(obj??obj3)
+product.find({active: true, type: "product"})
+// .sort({
+// 	name:
+// })
+.exec()
+.then(async resolve => {
 
-// require("./models/tailors").updateMany({}, {active: 1}).exec()
-// .then(resolve => console.log(resolve))
-// .catch(err => console.log(err))
+	console.log(resolve)
+
+	// let list = resolve.map(el => new Object({_id: el._id, name: el.name, image: "https://drive.google.com/uc?export=download&id=" + el.image.split('/')[5]}))
+
+	// console.log(list.length)
+	// for(let item of list) {
+
+	// 	console.log(item.name, item.image)
+	// 	let updated = await product.updateOne({_id: item._id}, {$set: {"image": item.image}})
+
+	// }
+
+})
+.catch(err => console.log(err))
 
 
 

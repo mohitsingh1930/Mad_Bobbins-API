@@ -3,7 +3,8 @@ var router = express.Router();
 var product = require("../models/products").product
 var price = require("../models/prices")
 
-var errorHandler = require("../errorHandlers")
+var errorHandler = require("../errorHandlers");
+const { min } = require('date-fns');
 
 
 /* GET products listing. */
@@ -23,7 +24,7 @@ router.get("/", (req, res) => {
 
 			if(temp_arr.indexOf(start) == -1) {
 
-				console.log(start)
+				// console.log(start)
 
 				temp_arr.push(start);
 
@@ -55,6 +56,20 @@ router.get("/", (req, res) => {
 
 
 		}
+
+		result = result.sort((a,b) => {
+
+			if(a.name+a.category<b.name+b.category) {
+				return -1
+			}
+			if(a.name+a.category>b.name+b.category) {
+				return 1
+			}
+			if(a.name+a.category == b.name+b.category) {
+				return 0
+			}
+
+		})
 
 		res.status(200).json({
 			result: result
