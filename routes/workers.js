@@ -393,6 +393,10 @@ router.post("/tailor/prices", (req, res) => {
 
 			})
 
+			element.deliveryPrice = element.total<=700?40:0;
+
+			element.total += element.deliveryPrice
+
 		}
 
 		console.log("Products:", cartData.map(el => new Object({id: el.productId, name: el.productName, quantity: el.quantity})))

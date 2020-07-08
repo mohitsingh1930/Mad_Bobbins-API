@@ -283,6 +283,58 @@ router.get("/tailor/productImage", (req, res) => {
 })
 
 
+router.get("/tailor/measurements", (req, res) => {
+
+	let id = req.query.id;
+
+	if(!id)
+		res.status(406).json({error_msg: "orderInstanceId not given"})
+
+	order.findById(id).select({measurements: 1}).exec()
+	.then(resolve => {
+
+		console.log(resolve)
+		if(resolve == null) {
+
+			res.status(404).json({
+				error_msg: "measurements not found"
+			})
+
+		}
+		else {
+
+			let result = []
+			resolve = resolve.measurements;
+
+			delete resolve.$init
+			delete resolve.top.$init
+			delete resolve.bottom.$init
+			delete resolve.blouse.$init
+
+			for(let key of Object.keys(resolve)) {
+
+				result.push({
+					[key]: Object.keys(resolve[key]).map(el => new Object({name: el, value: String(resolve[key][el] || 0)}))
+				})
+
+			}
+			
+			res.status(200).json({result})
+
+		}
+
+
+	})
+	.catch(err => {
+
+		console.log(err)
+		res.status(500).json(handler.internalServerError)
+
+	})
+
+})
+
+
 // response: orderId, pickupDate, tailor: [name, address, phone_no]
 router.get("/tailor/stitched", (req, res) => {
 
@@ -1443,7 +1495,7 @@ router.get("/delivery/pending", (req, res) => {
 					$push: {
 						id: "$product.id",
 						orderInstanceId: "$_id",
-						image: "$product.image"
+						image: "$product.imageStream"
 					}
 				}
 			}
@@ -1598,7 +1650,7 @@ router.get("/delivery/picked", (req, res) => {
 				userName: el.temp_user[0].name,
 				userAddress: el.temp_user[0].contact.address.text,
 				userPhone_no: el.temp_user[0].contact.phone_no,
-				totalPrice: el.total_price
+				totalPrice: (el.total_price<=700  && !el.return)?el.total_price+40:el.total_price
 			}))
 		})
 
@@ -1629,7 +1681,7 @@ router.get("/delivery/delivered", (req, res) => {
 			$match: {
 				"active.status": 1,
 				"deliver_id": mongoose.Types.ObjectId(deliveryId),
-				"status": "delivered"
+				"status": {$in: ["delivered", "returned"]}
 			}
 		},
 		{
@@ -1675,7 +1727,8 @@ router.get("/delivery/delivered", (req, res) => {
 				userName: el.temp_user[0].name,
 				userAddress: el.temp_user[0].contact.address.text,
 				tailorName: el.tailor[0].name,
-				totalPrice: el.total_price
+				deliveryPrice: el.total_price<=700?40:0,
+				totalPrice: (el.total_price<=700 && !el.return)?el.total_price+40:el.total_price
 			}))
 		})
 
@@ -1992,7 +2045,7 @@ router.post('/customer/return', async (req, res) => {
 				measurements: order.measurements,
 				payment: {
 					price_id: order.payment.price_id,
-					current_price: 0,
+					current_price: order.payment.current_price,
 					prepaid: false
 				},
 				temp_id: order.temp_id,
@@ -2197,45 +2250,21 @@ router.get("/customer/detail", (req, res) => {
 			$match: {
 				"user_id": mongoose.Types.ObjectId(userId),
 				"order_id": orderId,
-				"status": {$ne: 'returned'}
+				// "status": {$ne: 'returned'}
 			},
-		},
-		{
-			$group: {
-				_id: {
-					"order_id": "$order_id",
-					"_id": "$_id",
-					"product": "$product",
-					"dates": {
-						"pickup": "$dates.pickup",
-						"order": "$dates.order"
-					},
-					"arrangement_id": "$arrangement_id",
-					"tailor_id": "$tailor_id",
-					"status": "$status",
-					"movements": "$movements",
-					"payment": "$payment",
-					"temp_id": "$temp_id",
-					"return": "$return",
-					"addons": "$extras"
-					// "daysToComplete": {$arrayElemAt: ["$tailor.daysToComplete", 0]},
-					// "arrangement": {$filter: ["$schedules"]}
-				},
-				"quantity": {$sum: 1}
-			}
 		},
 		{
 			$lookup: {
 				from: "tailors",
 				foreignField: "_id",
-				localField: "_id.tailor_id",
+				localField: "tailor_id",
 				as: "tailor"
 			}
 		},
 		{
 			$lookup: {
 				from: "schedules",
-				let: {arrangement_id: "$_id.arrangement_id", pickup_date: "$_id.dates.pickup"},
+				let: {arrangement_id: "$arrangement_id", pickup_date: "$dates.pickup"},
 				pipeline: [
 					{
 						$match: {
@@ -2255,7 +2284,7 @@ router.get("/customer/detail", (req, res) => {
 			$lookup: {
 				from: "temporary_users",
 				foreignField: "_id",
-				localField: "_id.temp_id",
+				localField: "temp_id",
 				as: "temp_user"
 			}
 		},
@@ -2263,38 +2292,39 @@ router.get("/customer/detail", (req, res) => {
 			$lookup: {
 				from: "products",
 				foreignField: "_id",
-				localField: "_id.product.id",
+				localField: "product.id",
 				as: "productDetails"
 			}
 		},
 		{
 			$project: {
+				order_id: 1,
 				product: {
 					id: {$arrayElemAt: ["$productDetails._id", 0]},
-					orderInstanceId: "$_id._id",
+					orderInstanceId: "$_id",
 					name: {$arrayElemAt: ["$productDetails.name", 0]},
-					image: "$_id.product.image",
-					imageStream: "$_id.product.imageStream",
-					quantity: "$quantity",
-					price: "$_id.payment.current_price",
-					addons: "$_id.addons"
+					image: "$product.image",
+					imageStream: "$product.imageStream",
+					price: "$payment.current_price",
+					addons: "$addons"
 				},
-				return: "$_id.return",
+				return: "$return",
 				temp_user: {$arrayElemAt: ["$temp_user", 0]},
-				dates: "$_id.dates",
-				status: "$_id.status",
-				movements: "$_id.movements",
+				dates: "$dates",
+				status: "$status",
+				movements: "$movements",
+				tailorName: {$arrayElemAt: ["$tailor.name", 0]},
 				daysToComplete: {$arrayElemAt: ["$tailor.max_days_to_complete", 0]},
-				slot: {$arrayElemAt: [{$filter: {input: {$arrayElemAt: ["$schedules.arrangements", 0]}, as: "element", cond: {$eq: ["$$element._id", "$_id.arrangement_id"]}} }, 0] }
+				slot: {$arrayElemAt: [{$filter: {input: {$arrayElemAt: ["$schedules.arrangements", 0]}, as: "element", cond: {$eq: ["$$element._id", "$arrangement_id"]}} }, 0] }
 			}
 		},
 		{
-			$sort: {"dates.order": -1}
+			$sort: {"status": 1}
 		}
 	]).exec()
 	.then(resolve => {
 
-		// console.log(resolve)
+		console.log(resolve.filter(el => el.status != "returned" || resolve[0].status == "returned").map(el => el._id))
 
 		if(resolve.length === 0) {
 			res.status(404).json({
@@ -2302,7 +2332,12 @@ router.get("/customer/detail", (req, res) => {
 			})
 			throw `Not found`
 		}
-		let temp, total=0;
+
+		let temp;
+
+		let deliveryPrice = resolve.return? 0 : (resolve.reduce((accumulator, currentValue) => accumulator + currentValue.product.price, 0)<=700?40:0)
+
+		let totalPrice = deliveryPrice + resolve.reduce((accumulator, currentValue) => currentValue.status==="returned"?accumulator:accumulator + currentValue.product.price, 0);
 
 		temp = {
 			orderId: resolve[0].order_id,
@@ -2329,6 +2364,7 @@ router.get("/customer/detail", (req, res) => {
 
 				return false
 			})(),
+			tailorName: resolve[0].tailorName.split("(")[0],
 			status: handler.computeOrderStatus(resolve[0].status, resolve[0].movements),
 			slot: handler.slotsToString(resolve[0].slot).string,
 			deliveryDate: dateFns.format(dateFns.addDays(new Date(resolve[0].dates.pickup), resolve[0].daysToComplete), "EEE, dd MMM"),
@@ -2337,21 +2373,19 @@ router.get("/customer/detail", (req, res) => {
 				age: resolve[0].temp_user.age,
 				address: resolve[0].temp_user.contact.address.text
 			},
-			products: resolve.map(el => {
-				total += el.product.price*el.product.quantity;
-				return new Object({
+			products: resolve.filter(el => el.status != "returned" || resolve[0].status == "returned").map(el =>
+				new Object({
 					id: el.product.id,
 					orderInstanceId: el.product.orderInstanceId,
 					name: el.product.name,
-					quantity: el.product.quantity,
 					price: el.product.price,
 					image: el.product.image,
 					imageStream: el.product.imageStream || "",
 					addons: el.product.addons?(el.product.addons.reduce((accumulator, currentValue) => accumulator + ", " + handler.addons[currentValue.id], "").slice(2)):null
 				})
-			}),
-			totalPrice: total,
-			deliveryPrice: 0
+			),
+			totalPrice,
+			deliveryPrice
 		}
 
 		res.status(200).json({
