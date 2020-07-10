@@ -299,12 +299,22 @@ router.get("/tailor/detailedPrices", (req, res) => {
 
 			}
 
+
 			return {
 				name: tailor._id.name.split("(")[0],
 				products: result
 			}
 
 		})
+
+		// Update!! When we have seperate designer prices
+		// removing category designer
+		resolve = resolve.map(el =>
+			new Object({
+				name: el.name,
+				products: el.products.filter(product => product.category==="Simple")
+			})
+		)
 
 		res.status(200).json({
 			result: resolve
