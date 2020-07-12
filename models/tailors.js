@@ -40,7 +40,7 @@ var schema = new mongoose.Schema({
 		reports: [mongoose.ObjectId]
 	},
 	date_joined: {type: Date, default: new Date()},
-	date_left: {type: Date, default: new Date()},
+	date_left: {type: Date},
 	Wallets: {},
 	active: {type: Boolean, required: true, default: true}
 })

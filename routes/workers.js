@@ -293,6 +293,8 @@ router.get("/tailor/detailedPrices", (req, res) => {
 							temp_result.type.push({lining: el.name.split("(")[1].split(" ")[0], price: el.price})
 					}
 
+					temp_result.type.sort((a,b) => a.lining<b.lining)
+
 					result.push(temp_result)
 					temp_result = {}
 				}
