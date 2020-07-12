@@ -19,60 +19,115 @@ var price = require("./models/prices")
 
 // price.create(
 // 		[
-// 			// simple : full,half,no
+// 			// simple with salwar : full,half,no
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
-// 			"product_id": 13,
-// 			"amount": 900
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 2,
+// 			"amount": 400
 // 		},
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 12,
+// 			"amount": 320
+// 		},
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 10,
+// 			"amount": 250
+// 		},
+// 		// Designer with salwar: full,half,no
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 13,
+// 			"amount": 400
+// 		},
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
 // 			"product_id": 5,
+// 			"amount": 320
+// 		},
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 11,
+// 			"amount": 250
+// 		},
+// 		// simple with pant: full, half, no
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 17,
 // 			"amount": 500
 // 		},
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
-// 			"product_id": 11,
-// 			"amount": 300
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 16,
+// 			"amount": 390
 // 		},
-// 		// simple with pant: full,half,no
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 1,
+// 			"amount": 320
+// 		},
+// 		// Designer with pant: full, half, no
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
 // 			"product_id": 20,
-// 			"amount": 1000
+// 			"amount": 500
 // 		},
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
 // 			"product_id": 21,
-// 			"amount": 750
+// 			"amount": 390
 // 		},
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
 // 			"product_id": 22,
-// 			"amount": 600
+// 			"amount": 320
 // 		},
 // 		// simple blouse: no,yes
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
-// 			"product_id": 9,
-// 			"amount": 300
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 8,
+// 			"amount": 180
 // 		},
 
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 15,
+// 			"amount": 230
+// 		},
+// 		// Designer blouse: no, yes
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 9,
+// 			"amount": 180
+// 		},
+
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
 // 			"product_id": 7,
-// 			"amount": 400
+// 			"amount": 230
 // 		},
-// 		// kurti: yes, no
+// 		// Simple kurti: yes, no
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 6,
+// 			"amount": 240
+// 		},
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
+// 			"product_id": 4,
+// 			"amount": 200
+// 		},
+// 		// Designer kurti: yes, no
+// 		{
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
 // 			"product_id": 23,
-// 			"amount": 420
+// 			"amount": 240
 // 		},
 // 		{
-// 			"tailor_id": "5ee38467844a883ee54a1607",
+// 			"tailor_id": "5f0a8f096da4e1485048962b",
 // 			"product_id": 24,
-// 			"amount": 220
+// 			"amount": 200
 // 		}
 
 // 	],
@@ -104,6 +159,20 @@ var schema = new mongoose.Schema({
 
 var model = mongoose.model("test", schema);
 
+// let tailorsList = ["5ee38ff3844a883ee54a1612", "5f0962dd7e723a2ddcc27e41"]
+// prices.updateMany(
+// 	{
+// 		"tailor_id": {$nin: tailorsList},
+// 		"product_id": {$nin: [18, 19]},
+// 		"amount": {$lte: 300}
+// 	},
+// 	{
+// 		$mul: {"amount": 1.1}
+// 	}
+// )
+// .exec()
+// .then(resolve => console.log(resolve))
+// .catch(err => console.log(err))
 
 // product.find({active: true, type: "product"}).select({name:1, image: 1})
 // // .sort({

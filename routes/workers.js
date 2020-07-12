@@ -267,7 +267,7 @@ router.get("/tailor/detailedPrices", (req, res) => {
 
 				if(temp_arr.indexOf(start) == -1) {
 
-					console.log(start)
+					// console.log(start)
 
 					temp_arr.push(start);
 
@@ -294,6 +294,8 @@ router.get("/tailor/detailedPrices", (req, res) => {
 					}
 
 					temp_result.type.sort((a,b) => a.lining<b.lining)
+
+					console.log(temp_result)
 
 					result.push(temp_result)
 					temp_result = {}
