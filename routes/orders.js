@@ -1126,7 +1126,7 @@ router.get("/pickup/picked", (req, res) => {
 				// tailor: {
 				tailorName: el.tailor[0].name,
 				tailorAddress: el.tailor[0].contact.address.text,
-				tailorPhone_no: el.tailor[0].contact.phone_no
+				tailorPhone_no: el.tailor[0].contact.phone_no[0]
 				// }
 			}))
 		})
@@ -1563,7 +1563,7 @@ router.get("/delivery/pending", (req, res) => {
 			userName: order._id.temp_user.name,
 			tailorName: order._id.tailor.name,
 			tailorAddress: order._id.tailor.contact.address.text,
-			tailorPhone_no: order._id.tailor.contact.phone_no,
+			tailorPhone_no: order._id.tailor.contact.phone_no[0],
 			// userAge: order._id.temp_user.age,
 			// userPhone_no: order._id.temp_user.contact.phone_no,
 			// },
