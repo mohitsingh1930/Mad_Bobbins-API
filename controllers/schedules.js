@@ -1,6 +1,8 @@
 const dateFns = require('date-fns')
 
+const handler = require("../errorHandlers")
 const schedule = require("../models/schedules")
+
 
 module.exports = async (req, res) => {
 
@@ -25,7 +27,8 @@ module.exports = async (req, res) => {
 
 	}
 
-	console.log(req.query.area, req.query.pickupDate, pickupDate, process.env.MAXIMUM_SCHEDULE_PICKUP)
+	// console.log(req.query.area, req.query.pickupDate, pickupDate, process.env.MAXIMUM_SCHEDULE_PICKUP)
+	// console.log(pickupDate)
 
 	if(!dateFns.isBefore(pickupDate, dateFns.add(new Date(), {days: process.env.MAXIMUM_SCHEDULE_PICKUP}))) {
 		return res.status(406).json({
@@ -33,47 +36,74 @@ module.exports = async (req, res) => {
 		})
 	}
 
-	let slots = await schedule.find({
-		$expr: {
-			$and: [ {$eq: [ {$dayOfYear: pickupDate}, {$dayOfYear: "$date"}]}, {area: req.query.area} ]
-		}
-	});
+	let slot = await handler.checkAndCreateSlot(pickupDate, req.query.area)
 
-	console.log(slots)
+	console.log("Slots", slot)
 
-	if(slots.length == 0) {
+	
+	// filtering available slots after adding delay
+	let arrangements = slot.arrangements.filter(el => {
 
-		try {
-			let created = await schedule.create({arrangements, area: req.query.area, date: pickupDate})
+		let delayedDateTime = dateFns.addHours(new Date(), handler.defaults.MINIMUM_SCHEDULE_PICKUP)
 
-			return res.status(201).json({
-				result: created.arrangements.map(el => {
+		let arrangementDateTime = new Date(pickupDate.getFullYear(), pickupDate.getMonth(), pickupDate.getDate(), el.end, 0, 0)
 
-					start = (el.start>12)?`${el.start-12} P.M.`:`${el.start} A.M.`;
-					end = (el.end>12)?`${el.end-12} P.M.`:`${el.end} A.M.`;
-					string = start + " - " + end
-					return {id: el._id, start: el.start, end: el.end, string: string};
+		console.log(dateFns.format(delayedDateTime, "dd-MM-yyyy HH:mm"), dateFns.format(arrangementDateTime, "dd-MM-yyyy HH:mm"))
 
-				})
-			})
-		}
-		catch(err) {
-			console.log(err)
-			return res.json(errorHandler.internalServerError);
-		}
+		return dateFns.isBefore(delayedDateTime, arrangementDateTime)
 
-	}
+	}).map(el => {
 
+		start = (el.start>12)?`${el.start-12} P.M.`:`${el.start} A.M.`;
+		end = (el.end>12)?`${el.end-12} P.M.`:`${el.end} A.M.`;
+		string = start + " - " + end
+		return {id: el._id, start: el.start, end: el.end, string: string};
 
-	res.status(200).json({
-		result: slots[0].arrangements.map(el => {
-
-			start = (el.start>12)?`${el.start-12} P.M.`:`${el.start} A.M.`;
-			end = (el.end>12)?`${el.end-12} P.M.`:`${el.end} A.M.`;
-			string = start + " - " + end
-			return {id: el._id, start: el.start, end: el.end, string: string};
-
-		})
 	})
+
+	res.json(arrangements)
+
+	// let slots = await schedule.find({
+	// 	$expr: {
+	// 		$and: [ {$eq: [ {$dayOfYear: pickupDate}, {$dayOfYear: "$date"}]}, {area: req.query.area} ]
+	// 	}
+	// });
+
+	// console.log(slots)
+
+	// if(slots.length == 0) {
+
+	// 	try {
+	// 		let created = await schedule.create({arrangements, area: req.query.area, date: pickupDate})
+
+	// 		return res.status(201).json({
+	// 			result: created.arrangements.map(el => {
+
+	// 				start = (el.start>12)?`${el.start-12} P.M.`:`${el.start} A.M.`;
+	// 				end = (el.end>12)?`${el.end-12} P.M.`:`${el.end} A.M.`;
+	// 				string = start + " - " + end
+	// 				return {id: el._id, start: el.start, end: el.end, string: string};
+
+	// 			})
+	// 		})
+	// 	}
+	// 	catch(err) {
+	// 		console.log(err)
+	// 		return res.json(errorHandler.internalServerError);
+	// 	}
+
+	// }
+
+
+	// res.status(200).json({
+	// 	result: slots[0].arrangements.map(el => {
+
+	// 		start = (el.start>12)?`${el.start-12} P.M.`:`${el.start} A.M.`;
+	// 		end = (el.end>12)?`${el.end-12} P.M.`:`${el.end} A.M.`;
+	// 		string = start + " - " + end
+	// 		return {id: el._id, start: el.start, end: el.end, string: string};
+
+	// 	})
+	// })
 
 }

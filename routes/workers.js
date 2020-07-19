@@ -285,7 +285,6 @@ router.get("/tailor/detailedPrices", (req, res) => {
 
 					// temp_result.image = products[i].image
 
-
 					temp_result.type = [];
 
 					for(let el of products) {

@@ -1999,11 +1999,12 @@ router.post('/customer/return', async (req, res) => {
 				error_msg: "order is not delivered yet"
 				// error_msg: "One or more products are already picked, we cannot return picked products"
 			})
-			throw `Cannot return picked products`
+			throw `Cannot return delivered products`
 
 		}
 
 		let today = new Date()
+		// auto set pickup for next date from date of return
 		let pickupDate = dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate()), 1)
 		let slot = await handler.checkAndCreateSlot(pickupDate, "Burari")
 
