@@ -61,7 +61,7 @@ module.exports = async (req, res) => {
 
 	})
 
-	res.json(arrangements)
+	res.json({result: arrangements})
 
 	// let slots = await schedule.find({
 	// 	$expr: {
