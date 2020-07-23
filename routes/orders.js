@@ -5,7 +5,7 @@ var random = require("crypto-random-string")
 var dateFns = require("date-fns")
 
 var order = require("../models/orders").order
-var products = require("../models/products").product
+var product = require("../models/products").product
 var user = require("../models/users").user
 var tailor = require("../models/tailors")
 var price = require("../models/prices")
@@ -607,13 +607,15 @@ router.get("/pickup/measurements", (req, res) => {
 
 	let {userId: tempUserId, productId} = req.query;
 
+	console.log(userId, tempUserId, productId)
+
 	// measurement of last data of that user
 	let lastSavedMeasurement = 	order.find({"temp_id": tempUserId, "product.id": productId, "measurements": {$exists: true}})
 	.sort({"dates.order": -1, "order_id": -1})
 	.limit(1)
 	.exec()
 
-	let coverage = products.find({_id: productId}).select({coverage: 1}).exec()
+	let coverage = product.findById(productId).select({coverage: 1}).exec()
 
 	Promise.all([
 		lastSavedMeasurement,

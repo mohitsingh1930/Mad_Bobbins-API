@@ -145,7 +145,7 @@ var price = require("./models/prices")
 // })
 
 var handler = require("./errorHandlers");
-const { product } = require("./models/products");
+const product = require("./models/products").product;
 const prices = require("./models/prices");
 const { order } = require("./models/orders");
 
@@ -174,27 +174,27 @@ var model = mongoose.model("test", schema);
 // .then(resolve => console.log(resolve))
 // .catch(err => console.log(err))
 
-// product.find({active: true, type: "product"}).select({name:1, image: 1})
-// // .sort({
-// // 	name:
-// // })
-// .exec()
-// .then(async resolve => {
-
-// 	console.log(resolve)
-
-// 	let list = resolve.map(el => new Object({_id: el._id, name: el.name, image: "/" + el.image.split('data/')[1]}))
-
-// 	console.log(list.length)
-// 	for(let item of list) {
-
-// 		console.log(item.name, item.image)
-// 		let updated = await product.updateOne({_id: item._id}, {$set: {"image": item.image}})
-
-// 	}
-
+product.find({_id: 3}).select({name: 1, image: 1})
+// .sort({
+// 	name:
 // })
-// .catch(err => console.log(err))
+.exec()
+.then(async resolve => {
+
+	console.log(resolve)
+
+	// let list = resolve.map(el => new Object({_id: el._id, name: el.name, image: "/" + el.image.split('data/')[1]}))
+
+	// console.log(list.length)
+	// for(let item of list) {
+
+	// 	console.log(item.name, item.image)
+	// 	let updated = await product.updateOne({_id: item._id}, {$set: {"image": item.image}})
+
+	// }
+
+})
+.catch(err => console.log(err))
 
 
 
