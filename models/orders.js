@@ -84,16 +84,18 @@ var schema = mongoose.Schema({
 		top: {
 			"length": Number,
 			"teera": Number,
-			"Upper chest": Number,
-			"middle chest": Number,
-			"lower chest": Number,
 			"waist": Number,
 			"hip": Number,
 			"sleeves length": Number,
 			"sleeves botton": Number,
 			"front neck": Number,
 			"back neck": Number,
-			"armole": Number
+			"armole": Number,
+			"breast": Number,
+			"tummy": Number,
+			"bisceps": Number,
+			"dot point": Number,
+			"dot distance": Number
 		},
 		bottom: {
 			"length": Number,
@@ -101,18 +103,25 @@ var schema = mongoose.Schema({
 			"bottom": Number,
 			"bottom width": Number,
 			"thigh": Number,
-			"waist": Number
+			"waist": Number,
+			"knee": Number,
+			"calves": Number
 		},
 		blouse: {
 			"length": Number,
-			"upper chest": Number,
-			"middle chest": Number,
-			"lower chest": Number,
 			"sleeves length": Number,
 			"sleeves bottom": Number,
 			"waist": Number,
 			"across back": Number,
-			"armole": Number
+			"armole": Number,
+			"breast": Number,
+			"dot distance": Number,
+			"dot point": Number,
+			"teera": Number,
+			"front neck": Number,
+			"back neck": Number,
+			"bisceps": Number,
+
 		}
 	},
 
