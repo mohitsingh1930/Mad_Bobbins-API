@@ -607,7 +607,7 @@ router.get("/pickup/measurements", (req, res) => {
 
 	let {userId: tempUserId, productId} = req.query;
 
-	console.log(userId, tempUserId, productId)
+	console.log(tempUserId, productId)
 
 	// measurement of last data of that user
 	let lastSavedMeasurement = 	order.find({"temp_id": tempUserId, "product.id": productId, "measurements": {$exists: true}})
