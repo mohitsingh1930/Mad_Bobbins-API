@@ -642,37 +642,46 @@ router.get("/pickup/measurements", (req, res) => {
 
 			resolve = {
 				top: {
-					"length": 0,
-					"teera": 0,
-					"Upper chest": 0,
-					"middle chest": 0,
-					"lower chest": 0,
-					"waist": 0,
-					"hip": 0,
-					"sleeves length": 0,
-					"sleeves botton": 0,
-					"front neck": 0,
-					"back neck": 0,
-					"armole": 0
+					"length": Number,
+					"teera": Number,
+					"waist": Number,
+					"hip": Number,
+					"sleeves length": Number,
+					"sleeves botton": Number,
+					"front neck": Number,
+					"back neck": Number,
+					"armole": Number,
+					"breast": Number,
+					"tummy": Number,
+					"bisceps": Number,
+					"dot point": Number,
+					"dot distance": Number
 				},
 				bottom: {
-					"length": 0,
-					"hip": 0,
-					"bottom": 0,
-					"bottom width": 0,
-					"thigh": 0,
-					"waist": 0
+					"length": Number,
+					"hip": Number,
+					"bottom": Number,
+					"bottom width": Number,
+					"thigh": Number,
+					"waist": Number,
+					"knee": Number,
+					"calves": Number
 				},
 				blouse: {
-					"length": 0,
-					"upper chest": 0,
-					"middle chest": 0,
-					"lower chest": 0,
-					"sleeves length": 0,
-					"sleeves bottom": 0,
-					"waist": 0,
-					"across back": 0,
-					"armole": 0
+					"length": Number,
+					"sleeves length": Number,
+					"sleeves bottom": Number,
+					"waist": Number,
+					"across back": Number,
+					"armole": Number,
+					"breast": Number,
+					"dot distance": Number,
+					"dot point": Number,
+					"teera": Number,
+					"front neck": Number,
+					"back neck": Number,
+					"bisceps": Number,
+		
 				}
 			}
 
