@@ -615,7 +615,7 @@ router.get("/pickup/measurements", (req, res) => {
 	.limit(1)
 	.exec()
 
-	let coverage = product.findById(productId).select({coverage: 1}).exec()
+	let coverage = product.findById(Number(productId)).select({coverage: 1}).exec()
 
 	Promise.all([
 		lastSavedMeasurement,
@@ -623,9 +623,9 @@ router.get("/pickup/measurements", (req, res) => {
 	])
 	.then((resolve) => {
 
-		// console.log(resolve[0][0])
+		// console.log(resolve)
 
-		let coverage = resolve[1][0].coverage;
+		let coverage = resolve[1].coverage;
 		// console.log("Resolve:", resolve)
 		// console.log("Coverage:", coverage)
 

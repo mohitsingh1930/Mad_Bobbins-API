@@ -174,7 +174,7 @@ var model = mongoose.model("test", schema);
 // .then(resolve => console.log(resolve))
 // .catch(err => console.log(err))
 
-product.find({_id: 3}).select({name: 1, image: 1})
+product.findById("23").select({name: 1, image: 1})
 // .sort({
 // 	name:
 // })
