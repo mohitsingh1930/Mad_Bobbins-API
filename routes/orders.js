@@ -304,12 +304,7 @@ router.get("/tailor/measurements", (req, res) => {
 		else {
 
 			let result = []
-			resolve = resolve.measurements;
-
-			delete resolve.$init
-			delete resolve.top.$init
-			delete resolve.bottom.$init
-			delete resolve.blouse.$init
+			resolve = resolve.measurements.toObject();
 
 			for(let key of Object.keys(resolve)) {
 
@@ -318,7 +313,7 @@ router.get("/tailor/measurements", (req, res) => {
 				})
 
 			}
-			
+
 			res.status(200).json({result})
 
 		}

@@ -174,14 +174,17 @@ var model = mongoose.model("test", schema);
 // .then(resolve => console.log(resolve))
 // .catch(err => console.log(err))
 
-product.findById("23").select({name: 1, image: 1})
+order.findById("5f1d132008f7d60017f76c35").select({measurements: 1})
 // .sort({
 // 	name:
 // })
 .exec()
 .then(async resolve => {
 
-	console.log(resolve)
+	let obj = resolve.measurements.toObject()
+
+	console.log(Object.keys(obj.bottom), Object.keys(resolve.measurements.bottom))
+
 
 	// let list = resolve.map(el => new Object({_id: el._id, name: el.name, image: "/" + el.image.split('data/')[1]}))
 
