@@ -612,13 +612,13 @@ router.get("/pickup/measurements", async (req, res) => {
 
 	let coverage = (await product.findById(Number(productId)).select({coverage: 1}).exec()).coverage
 
-	let productsWithCommonMeasurements = (await product.find({"coverage": {$all: coverage}}))
+	let productsWithCommonMeasurements = (await product.find({"coverage": {$elemMatch: {$in: coverage}}}))
 
 	console.log(coverage)
 
 	// measurement of last data of that user
 	let lastSavedMeasurement = 	order.find({"temp_id": tempUserId, "product.id": {$in: productsWithCommonMeasurements}, "measurements": {$exists: true}})
-	.sort({"dates.order": -1, "order_id": -1})
+	.sort({"dates.order": -1, "order_id": -1, "_id": -1})
 	.limit(1)
 	.exec()
 
@@ -776,7 +776,7 @@ router.post("/pickup/productDetails", (req, res) => {
 	for(let key of Object.keys(measurements)) {
 
 		for(let obj of measurements[key]) {
-			result[key][obj.name] = Number(obj.value)
+			result[key][obj.name] = String(obj.value)
 		}
 
 	}
