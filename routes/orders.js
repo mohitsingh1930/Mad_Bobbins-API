@@ -635,11 +635,6 @@ router.get("/pickup/measurements", async (req, res) => {
 
 			resolve = resolve[0][0].measurements
 
-			// delete resolve.$init
-			// delete resolve.top.$init
-			// delete resolve.bottom.$init
-			// delete resolve.blouse.$init
-
 		}
 		else {
 
@@ -2004,6 +1999,7 @@ router.post('/customer/return', async (req, res) => {
 
 	list = list.map(el => el.id)
 
+	console.log(list)
 
 	order.find({ _id: {$in: list} }).exec()
 	.then(async resolve => {
@@ -2025,7 +2021,7 @@ router.post('/customer/return', async (req, res) => {
 		let pickupDate = dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate()), 1)
 		let slot = await handler.checkAndCreateSlot(pickupDate, "Burari")
 
-		console.log(products)
+		// console.log(products)
 
 		// generate order id
 		let order_id = dateFns.format(new Date(), "yyyyMMdd");
@@ -2080,7 +2076,7 @@ router.post('/customer/return', async (req, res) => {
 	})
 	.then(resolve => {
 
-		console.log(resolve)
+		console.log(resolve.length)
 		return order.updateMany({_id: {$in: list}}, {$set: {status: "returned"}}).exec()
 
 	})
@@ -2353,7 +2349,7 @@ router.get("/customer/detail", (req, res) => {
 
 		let temp;
 
-		let deliveryPrice = resolve.return? 0 : (resolve.reduce((accumulator, currentValue) => accumulator + currentValue.product.price, 0)<=700?40:0)
+		let deliveryPrice = resolve[0].return? 0 : (resolve.reduce((accumulator, currentValue) => accumulator + currentValue.product.price, 0)<=700?40:0)
 
 		let totalPrice = deliveryPrice + resolve.reduce((accumulator, currentValue) => currentValue.status==="returned"?accumulator:accumulator + currentValue.product.price, 0);
 

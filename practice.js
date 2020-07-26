@@ -174,16 +174,20 @@ var model = mongoose.model("test", schema);
 // .then(resolve => console.log(resolve))
 // .catch(err => console.log(err))
 
-order.findById("5f1d132008f7d60017f76c35").select({measurements: 1})
+order.find({_id: {$in: ["5f1d132008f7d60017f76c35"]}}).select({measurements: 1})
 // .sort({
 // 	name:
 // })
 .exec()
 .then(async resolve => {
 
-	let obj = resolve.measurements.toObject()
+	// console.log(resolve)
 
-	console.log(Object.keys(obj.bottom), Object.keys(resolve.measurements.bottom))
+	if(resolve.length == 0)return
+
+	let obj = resolve[0].measurements.toObject()
+
+	console.log(Object.keys(obj.bottom), Object.keys(resolve[0].measurements.bottom))
 
 
 	// let list = resolve.map(el => new Object({_id: el._id, name: el.name, image: "/" + el.image.split('data/')[1]}))
