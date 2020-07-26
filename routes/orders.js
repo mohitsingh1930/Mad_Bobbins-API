@@ -603,29 +603,35 @@ router.put("/tailor/update/completed", (req, res) => {
 
 // <<<<<<<<<<<<<<<<<<<<<<<<<<<<SCOPE: pickup
 
-router.get("/pickup/measurements", (req, res) => {
+router.get("/pickup/measurements", async (req, res) => {
 
 	let {userId: tempUserId, productId} = req.query;
 
 	console.log(tempUserId, productId)
 
+
+	let coverage = (await product.findById(Number(productId)).select({coverage: 1}).exec()).coverage
+
+	let productsWithCommonMeasurements = (await product.find({"coverage": {$all: coverage}}))
+
+	console.log(coverage)
+
 	// measurement of last data of that user
-	let lastSavedMeasurement = 	order.find({"temp_id": tempUserId, "product.id": productId, "measurements": {$exists: true}})
+	let lastSavedMeasurement = 	order.find({"temp_id": tempUserId, "product.id": {$in: productsWithCommonMeasurements}, "measurements": {$exists: true}})
 	.sort({"dates.order": -1, "order_id": -1})
 	.limit(1)
 	.exec()
 
-	let coverage = product.findById(Number(productId)).select({coverage: 1}).exec()
 
 	Promise.all([
-		lastSavedMeasurement,
-		coverage
+		lastSavedMeasurement
+		// coverage
 	])
 	.then((resolve) => {
 
 		// console.log(resolve)
 
-		let coverage = resolve[1].coverage;
+		// let coverage = resolve[1].coverage;
 		// console.log("Resolve:", resolve)
 		// console.log("Coverage:", coverage)
 
@@ -634,68 +640,73 @@ router.get("/pickup/measurements", (req, res) => {
 
 			resolve = resolve[0][0].measurements
 
-			delete resolve.$init
-			delete resolve.top.$init
-			delete resolve.bottom.$init
-			delete resolve.blouse.$init
+			// delete resolve.$init
+			// delete resolve.top.$init
+			// delete resolve.bottom.$init
+			// delete resolve.blouse.$init
 
 		}
 		else {
 
 			resolve = {
-				top: {
-					"length": 0,
-					"teera": 0,
-					"waist": 0,
-					"hip": 0,
-					"sleeves length": 0,
-					"sleeves botton": 0,
-					"front neck": 0,
-					"back neck": 0,
-					"armole": 0,
-					"breast": 0,
-					"tummy": 0,
-					"bisceps": 0,
-					"dot point": 0,
-					"dot distance": 0
-				},
-				bottom: {
-					"length": 0,
-					"hip": 0,
-					"bottom": 0,
-					"bottom width": 0,
-					"thigh": 0,
-					"waist": 0,
-					"knee": 0,
-					"calves": 0
-				},
-				blouse: {
-					"length": 0,
-					"sleeves length": 0,
-					"sleeves bottom": 0,
-					"waist": 0,
-					"across back": 0,
-					"armole": 0,
-					"breast": 0,
-					"dot distance": 0,
-					"dot point": 0,
-					"teera": 0,
-					"front neck": 0,
-					"back neck": 0,
-					"bisceps": 0,
-		
-				}
+				top: {},
+				bottom: {},
+				blouse: {}
 			}
 
 		}
 
+		let measurementsObject = {
+			top: {
+				"length": 0,
+				"teera": 0,
+				"waist": 0,
+				"hip": 0,
+				"sleeves length": 0,
+				"sleeves botton": 0,
+				"front neck": 0,
+				"back neck": 0,
+				"armole": 0,
+				"breast": 0,
+				"tummy": 0,
+				"bisceps": 0,
+				"dot point": 0,
+				"dot distance": 0
+			},
+			bottom: {
+				"length": 0,
+				"hip": 0,
+				"bottom": 0,
+				"bottom width": 0,
+				"thigh": 0,
+				"waist": 0,
+				"knee": 0,
+				"calves": 0
+			},
+			blouse: {
+				"length": 0,
+				"sleeves length": 0,
+				"sleeves bottom": 0,
+				"waist": 0,
+				"across back": 0,
+				"armole": 0,
+				"breast": 0,
+				"dot distance": 0,
+				"dot point": 0,
+				"teera": 0,
+				"front neck": 0,
+				"back neck": 0,
+				"bisceps": 0
+			}
+		}
+
 		let result = []
 
-		for(let key of Object.keys(resolve)) {
+		for(let key of ["top", "bottom", "blouse"]) {
 
 			if(coverage.includes(key)) {
 				result.push({
-					[key]: Object.keys(resolve[key]).map(el => new Object({name: el, value: String(resolve[key][el] || 0)}))
+					[key]: Object.keys(measurementsObject[key]).map(el => new Object({name: el, value: String(resolve[key][el] || 0)}))
 				})
 			}
 			else {
@@ -1040,7 +1051,7 @@ router.get("/pickup/pending/details", (req, res) => {
 	]).exec()
 	.then((resolve) => {
 
-		console.log("Result:", resolve);
+		console.log("Result:", resolve.map(el => el._id.slot));
 
 		resolve = resolve.map(order => new Object({
 			orderId: order._id.order_id,
