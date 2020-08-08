@@ -969,6 +969,7 @@ router.get("/pickup/pending/details", (req, res) => {
 					"temp_id": "$temp_id",
 					"status": "$status",
 					"dates": "$dates",
+					"tailor_id": "$tailor_id",
 					"arrangement_id": "$arrangement_id"
 				},
 				product: {
@@ -985,6 +986,14 @@ router.get("/pickup/pending/details", (req, res) => {
 				foreignField: "_id",
 				localField: "_id.temp_id",
 				as: "temp_user"
+			}
+		},
+		{
+			$lookup: {
+				from: "tailors",
+				foreignField: "_id",
+				localField: "_id.tailor_id",
+				as: "tailor"
 			}
 		},
 		{
@@ -1023,6 +1032,7 @@ router.get("/pickup/pending/details", (req, res) => {
 					"order_id": "$_id.order_id",
 					"dates": "$_id.dates",
 					"status": "$_id.status",
+					"tailor_name": {$arrayElemAt: ["$tailor.name", 0]},
 					"temp_user": {$arrayElemAt: ["$temp_user", 0]},
 					"slot": {$arrayElemAt: [{$filter: {input: {$arrayElemAt: ["$schedules.arrangements", 0]}, as: "element", cond: {$eq: ["$$element._id", "$_id.arrangement_id"]}} }, 0] }
 				},
@@ -1041,13 +1051,14 @@ router.get("/pickup/pending/details", (req, res) => {
 	]).exec()
 	.then((resolve) => {
 
-		console.log("Result:", resolve.map(el => el._id.slot));
+		console.log("Result:", resolve);
 
 		resolve = resolve.map(order => new Object({
 			orderId: order._id.order_id,
 			pickupDate: dateFns.format(new Date(order._id.dates.pickup), "dd-MM-yyyy"),
 			status: order._id.status,
 			slotString: handler.slotsToString(order._id.slot).string,
+			tailorName: order._id.tailor_name,
 			user: {
 				id: order._id.temp_user._id,
 				name: order._id.temp_user.name,
@@ -1180,7 +1191,8 @@ router.get("/pickup/assigned" ,(req, res) => {
 					"tailor_id": "$tailor_id",
 					"temp_id": "$temp_id",
 					"status": "$status",
-					"dates": "$dates"
+					"dates": "$dates",
+					"movements": "$movements"
 				}
 			}
 		},
@@ -1223,7 +1235,8 @@ router.get("/pickup/assigned" ,(req, res) => {
 			result: resolve.map(el => new Object({
 				orderId: el._id.order_id,
 				// pickupDate: dateFns.format(new Date(el.dates.pickup), "dd-MM-yyyy"),
-				deliveryDate: dateFns.format(dateFns.addDays(new Date(el._id.dates.pickup), el.tailor[0].max_days_to_complete), "dd-MM-yyyy"),
+				// deliveryDate: dateFns.format(dateFns.addDays(new Date(el._id.dates.pickup), el.tailor[0].max_days_to_complete), "dd-MM-yyyy"),
+				pickupDate: dateFns.format(new Date(el._id.movements.picked.date), "dd-MM-yyyy HH:mm"),
 				// tailor: {
 				tailorName: el.tailor[0].name,
 				customerName: el.temp_user[0].name
@@ -1565,7 +1578,7 @@ router.get("/delivery/pending", (req, res) => {
 	]).exec()
 	.then((resolve) => {
 
-		console.log("Result:", resolve);
+		console.log("Result:", resolve[0]._id.tailor.contact.address);
 
 		resolve = resolve.map(order => new Object({
 			orderId: order._id.order_id,
@@ -1574,8 +1587,9 @@ router.get("/delivery/pending", (req, res) => {
 			// userId: order._id.temp_user._id,
 			userName: order._id.temp_user.name,
 			tailorName: order._id.tailor.name,
-			tailorAddress: order._id.tailor.contact.address.text,
+			tailorAddress: order._id.tailor.contact.address[0].text,
 			tailorPhone_no: order._id.tailor.contact.phone_no[0],
+			deliveryDate: dateFns.format(dateFns.addDays(new Date(order._id.dates.pickup), order._id.tailor.max_days_to_complete), "dd-MM-yyyy"),
 			// userAge: order._id.temp_user.age,
 			// userPhone_no: order._id.temp_user.contact.phone_no,
 			// },
