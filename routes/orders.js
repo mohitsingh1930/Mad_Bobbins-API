@@ -799,9 +799,7 @@ router.post("/pickup/productDetails", (req, res) => {
 
 	// console.log(req.body)
 
-	let {id, top, bottom, blouse} = req.body;
-
-	let {addons, designPrice, description} = req.body
+	let {id, addons, designPrice, description} = req.body
 
 	// setting up vairables
 	let temp = [];
@@ -819,31 +817,6 @@ router.post("/pickup/productDetails", (req, res) => {
 	})
 
 	designPrice = designPrice == ""?null:Number(designPrice)
-
-	// console.log(top, bottom, blouse, addons, designPrice)
-
-	let measurements = {
-
-		top: top.length?JSON.parse(top):[],
-		bottom: bottom.length?JSON.parse(bottom):[],
-		blouse: blouse.length?JSON.parse(blouse):[],
-
-	};
-
-	let result = {
-		top: top.length?{}:undefined,
-		bottom: bottom.length?{}:undefined,
-		blouse: blouse.length?{}:undefined
-	}
-
-	for(let key of Object.keys(measurements)) {
-
-		for(let obj of measurements[key]) {
-			result[key][obj.name] = String(obj.value)
-		}
-
-	}
-
 
 	// if price had given then update
 	let designPriceUpdate = designPrice?
@@ -2526,7 +2499,7 @@ router.get("/customer/detail", (req, res) => {
 })
 
 
-router.get("/customer/measurements", async (req, res) => {
+router.post("/customer/measurements", async (req, res) => {
 
 	let cartData = JSON.parse(req.body.cartData);
 
@@ -2534,7 +2507,7 @@ router.get("/customer/measurements", async (req, res) => {
 
 	let products = cartData.map(el => Number(el.productId))
 
-	console.log(tempUserId, products)
+	console.log(tempUserId, req.body.cartData, products, req.body)
 
 
 	try{
@@ -2610,7 +2583,7 @@ router.get("/customer/measurements", async (req, res) => {
 			}
 
 			// console.log(lastSavedMeasurement)
-			// console.log(tempResult)
+			console.log(tempResult)
 
 			result.push(tempResult)
 
