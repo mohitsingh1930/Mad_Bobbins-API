@@ -399,7 +399,7 @@ router.post("/tailor/prices", (req, res) => {
 	]).exec()
 
 
-	Promise.all(priceList, tailorsReview)
+	Promise.all([priceList, tailorsReview])
 	.then(([pricesWithTailors, reviews]) => {
 
 		for(let element of pricesWithTailors) {
@@ -428,15 +428,15 @@ router.post("/tailor/prices", (req, res) => {
 			element.total += element.deliveryPrice
 
 			let review = reviews.find(el => el._id===element.tailor[0].id) ?? {sum_of_ratings: 0, total_ratings: 0}
-			element.review = ((4*10 + review.sum_of_ratings)/(10 + review.total_ratings)).toPrecision(2)
+			element.rating = ((4*10 + review.sum_of_ratings)/(10 + review.total_ratings)).toPrecision(2)
 
 		}
 
-		console.log("Products:", cartData.map(el => new Object({id: el.productId, name: el.productName, quantity: el.quantity})))
-		console.log(JSON.stringify(resolve))
+		// console.log("Products:", cartData.map(el => new Object({id: el.productId, name: el.productName, quantity: el.quantity})))
+		// console.log(JSON.stringify(resolve))
 
 		res.status(200).json({
-			result: resolve
+			result: pricesWithTailors
 		})
 
 	})
