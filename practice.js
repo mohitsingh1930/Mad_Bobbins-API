@@ -148,6 +148,7 @@ var handler = require("./errorHandlers");
 const product = require("./models/products").product;
 const prices = require("./models/prices");
 const { order } = require("./models/orders");
+const review = require("./models/reviews")
 
 var schema = new mongoose.Schema({
 	name: String,
@@ -174,34 +175,68 @@ var model = mongoose.model("test", schema);
 // .then(resolve => console.log(resolve))
 // .catch(err => console.log(err))
 
-order.find({_id: {$in: ["5f1d132008f7d60017f76c35"]}}).select({measurements: 1})
-// .sort({
-// 	name:
-// })
-.exec()
-.then(async resolve => {
+review.aggregate([
+	{
+		$group: {
+			_id: "$tailor_id",
+			sum_of_ratings: {
+				$sum: "$rating"
+			},
+			total_ratings: {
+				$sum: 1
+			}
+		}
+	}
+]).exec()
+.then(resolve => {
+	console.log(resolve)
 
-	// console.log(resolve)
+	let ratings = [
+		"5ee38467844a883ee54a1607",
+		"5ee38f7b844a883ee54a1610",
+		"5ee38ff3844a883ee54a1612",
+		"5f0962dd7e723a2ddcc27e41"
+	].map(el => {
 
-	if(resolve.length == 0)return
+		let review = resolve.find(el2 => el2.tailor[0].id===el) ?? {sum_of_ratings: 0, total_ratings: 0}
 
-	let obj = resolve[0].measurements.toObject()
+		return ((4*10 + review.sum_of_ratings)/(10 + review.total_ratings)).toPrecision(2)
 
-	console.log(Object.keys(obj.bottom), Object.keys(resolve[0].measurements.bottom))
+	})
 
+	console.log(ratings)
 
-	// let list = resolve.map(el => new Object({_id: el._id, name: el.name, image: "/" + el.image.split('data/')[1]}))
-
-	// console.log(list.length)
-	// for(let item of list) {
-
-	// 	console.log(item.name, item.image)
-	// 	let updated = await product.updateOne({_id: item._id}, {$set: {"image": item.image}})
-
-	// }
 
 })
-.catch(err => console.log(err))
+
+// order.find({_id: {$in: ["5f1d132008f7d60017f76c35"]}}).select({measurements: 1})
+// // .sort({
+// // 	name:
+// // })
+// .exec()
+// .then(async resolve => {
+
+// 	// console.log(resolve)
+
+// 	if(resolve.length == 0)return
+
+// 	let obj = resolve[0].measurements.toObject()
+
+// 	console.log(Object.keys(obj.bottom), Object.keys(resolve[0].measurements.bottom))
+
+
+// 	// let list = resolve.map(el => new Object({_id: el._id, name: el.name, image: "/" + el.image.split('data/')[1]}))
+
+// 	// console.log(list.length)
+// 	// for(let item of list) {
+
+// 	// 	console.log(item.name, item.image)
+// 	// 	let updated = await product.updateOne({_id: item._id}, {$set: {"image": item.image}})
+
+// 	// }
+
+// })
+// .catch(err => console.log(err))
 
 
 

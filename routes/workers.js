@@ -4,6 +4,7 @@ const mongoose = require("mongoose")
 const dateFns = require("date-fns")
 
 var price = require("../models/prices")
+var review = require("../models/reviews")
 var tailor = require("../models/tailors")
 var delivery_client = require("../models/movers_delievery")
 var pickup_client = require("../models/movers_pickup")
@@ -340,7 +341,7 @@ router.post("/tailor/prices", (req, res) => {
 
 	// console.log(products, quantities)
 
-	price.aggregate([
+	let priceList = price.aggregate([
 		{
 			$match: {product_id: {$in: products}}
 		},
@@ -381,11 +382,27 @@ router.post("/tailor/prices", (req, res) => {
 				// total: 1
 			}
 		}
-	])
-	.then((resolve) => {
+	]).exec()
+
+	let tailorsReview = review.aggregate([
+		{
+			$group: {
+				_id: "$tailor_id",
+				sum_of_ratings: {
+					$sum: "$rating"
+				},
+				total_ratings: {
+					$sum: 1
+				}
+			}
+		}
+	]).exec()
 
 
-		for(let element of resolve) {
+	Promise.all(priceList, tailorsReview)
+	.then(([pricesWithTailors, reviews]) => {
+
+		for(let element of pricesWithTailors) {
 
 			element.tailor[0].name = element.tailor[0].name.split("(")[0]
 
@@ -409,6 +426,9 @@ router.post("/tailor/prices", (req, res) => {
 			element.deliveryPrice = element.total<=700?40:0;
 
 			element.total += element.deliveryPrice
+
+			let review = reviews.find(el => el._id===element.tailor[0].id) ?? {sum_of_ratings: 0, total_ratings: 0}
+			element.review = ((4*10 + review.sum_of_ratings)/(10 + review.total_ratings)).toPrecision(2)
 
 		}
 

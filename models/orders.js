@@ -125,6 +125,12 @@ var schema = mongoose.Schema({
 		}
 	},
 
+	pickup_demand: {
+		type: String,
+		enum: ["cloth", "measurements", "none"],
+		required: true
+	},
+
 	description: String,
 
 	return: {
@@ -136,10 +142,5 @@ var schema = mongoose.Schema({
 
 })
 
-// schema.plugin(autoIncrement.plugin, {
-// 	model: "orders",
-// 	field: "order_id",
-// 	startAt: 100
-// })
 
 module.exports.order = mongoose.model("orders", schema)

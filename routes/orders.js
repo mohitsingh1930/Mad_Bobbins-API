@@ -612,7 +612,20 @@ router.get("/pickup/measurements", async (req, res) => {
 	console.log(coverage)
 
 	// measurement of last data of that user
-	let lastSavedMeasurement = 	order.find({"temp_id": tempUserId, "product.id": {$in: productsWithCommonMeasurements}, "measurements": {$exists: true}})
+	let lastSavedMeasurement = 	order.find(
+		// Query:
+		{
+			"temp_id": tempUserId,
+			"product.id": {$in: productsWithCommonMeasurements},
+			"measurements": {$exists: true}
+		},
+		// Projection:
+		{
+			measurements: 1,
+			order_id: 1,
+			dates: 1
+		}
+	)
 	.sort({"dates.order": -1, "order_id": -1, "_id": -1})
 	.limit(1)
 	.exec()
@@ -722,6 +735,66 @@ router.get("/pickup/measurements", async (req, res) => {
 })
 
 
+// Save: measurements
+router.post("/pickup/measurements", (req, res) => {
+
+	// console.log(req.body)
+
+	let {id, top, bottom, blouse} = req.body;
+
+
+	//Generating measurements object from input
+	let measurements = {
+
+		top: top.length?JSON.parse(top):[],
+		bottom: bottom.length?JSON.parse(bottom):[],
+		blouse: blouse.length?JSON.parse(blouse):[],
+
+	};
+
+	let result = {
+		top: top.length?{}:undefined,
+		bottom: bottom.length?{}:undefined,
+		blouse: blouse.length?{}:undefined
+	}
+
+	for(let key of Object.keys(measurements)) {
+
+		for(let obj of measurements[key]) {
+			result[key][obj.name] = String(obj.value)
+		}
+
+	}
+
+	// save measurements
+	order.updateOne(
+		{
+			_id: mongoose.Types.ObjectId(id)
+		},
+		{
+			measurements: result
+		}
+	).exec()
+	.then((resolve) => {
+
+		console.log(resolve)
+		res.status(200).json({
+			msg: "Measurements Saved"
+		})
+
+	})
+	.catch((err) => {
+
+		console.log(err)
+		res.status(500).json(handler.internalServerError)
+
+	})
+
+
+})
+
+
+// Save: addons, designPrice and description
 router.post("/pickup/productDetails", (req, res) => {
 
 	// console.log(req.body)
@@ -747,7 +820,7 @@ router.post("/pickup/productDetails", (req, res) => {
 
 	designPrice = designPrice == ""?null:Number(designPrice)
 
-	console.log(top, bottom, blouse, addons, designPrice)
+	// console.log(top, bottom, blouse, addons, designPrice)
 
 	let measurements = {
 
@@ -772,7 +845,7 @@ router.post("/pickup/productDetails", (req, res) => {
 	}
 
 
-	// if price if given then update
+	// if price had given then update
 	let designPriceUpdate = designPrice?
 	order.updateOne(
 		{
@@ -843,7 +916,6 @@ router.post("/pickup/productDetails", (req, res) => {
 		// return Promise.resolve("Intermediate")
 
 		let updateQuery = {
-			"measurements": result,
 			"extras": addons,
 			"description": description
 		}
@@ -883,7 +955,7 @@ router.post("/pickup/productDetails", (req, res) => {
 })
 
 
-
+// NOT_IN_USE
 router.get("/pickup/pending", (req, res) => {
 
 	order.aggregate([
@@ -970,7 +1042,8 @@ router.get("/pickup/pending/details", (req, res) => {
 					"status": "$status",
 					"dates": "$dates",
 					"tailor_id": "$tailor_id",
-					"arrangement_id": "$arrangement_id"
+					"arrangement_id": "$arrangement_id",
+					"pickup_demand": "$pickup_demand"
 				},
 				product: {
 					$push: {
@@ -1032,6 +1105,7 @@ router.get("/pickup/pending/details", (req, res) => {
 					"order_id": "$_id.order_id",
 					"dates": "$_id.dates",
 					"status": "$_id.status",
+					"pickup_demand": "$_id.pickup_demand",
 					"tailor_name": {$arrayElemAt: ["$tailor.name", 0]},
 					"temp_user": {$arrayElemAt: ["$temp_user", 0]},
 					"slot": {$arrayElemAt: [{$filter: {input: {$arrayElemAt: ["$schedules.arrangements", 0]}, as: "element", cond: {$eq: ["$$element._id", "$_id.arrangement_id"]}} }, 0] }
@@ -1056,6 +1130,7 @@ router.get("/pickup/pending/details", (req, res) => {
 		resolve = resolve.map(order => new Object({
 			orderId: order._id.order_id,
 			pickupDate: dateFns.format(new Date(order._id.dates.pickup), "dd-MM-yyyy"),
+			demand_on_pickup: order._id.pickup_demand,
 			status: order._id.status,
 			slotString: handler.slotsToString(order._id.slot).string,
 			tailorName: order._id.tailor_name,
@@ -1490,12 +1565,6 @@ router.put("/pickup/update/delievered", (req, res) => {
 
 router.get("/delivery/pending", (req, res) => {
 
-	// if(!status[req.params.status]) {
-	// 	res.send({
-	// 		status: 400,
-	// 		error_msg: "Not a valid status"
-	// 	})
-	// }
 
 	order.aggregate([
 		{
@@ -1578,7 +1647,7 @@ router.get("/delivery/pending", (req, res) => {
 	]).exec()
 	.then((resolve) => {
 
-		console.log("Result:", resolve[0]._id.tailor.contact.address);
+		// console.log("Result:", resolve[0]._id.tailor.contact.address);
 
 		resolve = resolve.map(order => new Object({
 			orderId: order._id.order_id,
@@ -1964,6 +2033,7 @@ router.post("/customer/create", async (req, res) => {
 					user_id: orders_details.userId,
 					tailor_id: orders_details.tailorId,
 					"dates.pickup": handler.toDate(orders_details.pickupDate),
+					pickup_demand: orders_details.pickupType ?? "measurements",
 					// addresss_id: product.addresss_id,
 					arrangement_id: orders_details.pickupSlotId,		//schedule id
 					payment: {
@@ -2070,12 +2140,16 @@ router.post('/customer/return', async (req, res) => {
 				"dates.pickup": pickupDate,
 				// addresss_id: product.addresss_id,
 				arrangement_id: slot.arrangements[0]._id,		//schedule id
+				extras: order.extras,
 				measurements: order.measurements,
+				pickup_demand: order.pickup_demand,
 				payment: {
 					price_id: order.payment.price_id,
+					design_price: order.design_price,
 					current_price: order.payment.current_price,
 					prepaid: false
 				},
+				description: order.description,
 				temp_id: order.temp_id,
 				return: {
 					status: 1,
@@ -2325,6 +2399,14 @@ router.get("/customer/detail", (req, res) => {
 			}
 		},
 		{
+			$lookup: {
+				from: "reviews",
+				foreignField: "order_instance_id",
+				localField: "_id",
+				as: "review"
+			}
+		},
+		{
 			$project: {
 				order_id: 1,
 				product: {
@@ -2336,6 +2418,7 @@ router.get("/customer/detail", (req, res) => {
 					price: "$payment.current_price",
 					addons: "$addons"
 				},
+				review: "$review",
 				return: "$return",
 				temp_user: {$arrayElemAt: ["$temp_user", 0]},
 				dates: "$dates",
@@ -2366,6 +2449,16 @@ router.get("/customer/detail", (req, res) => {
 		let deliveryPrice = resolve[0].return? 0 : (resolve.reduce((accumulator, currentValue) => accumulator + currentValue.product.price, 0)<=700?40:0)
 
 		let totalPrice = deliveryPrice + resolve.reduce((accumulator, currentValue) => currentValue.status==="returned"?accumulator:accumulator + currentValue.product.price, 0);
+
+
+		// checking review if present
+		let review = resolve.find(el => el.review.length >= 1)
+
+		review = {
+			rating: review?.rating===undefined?null:review.rating,
+			msg: review?.message===undefined?null:review.rating
+		}
+
 
 		temp = {
 			orderId: resolve[0].order_id,
@@ -2412,6 +2505,7 @@ router.get("/customer/detail", (req, res) => {
 					addons: el.product.addons?(el.product.addons.reduce((accumulator, currentValue) => accumulator + ", " + handler.addons[currentValue.id], "").slice(2)):null
 				})
 			),
+			review: review,
 			totalPrice,
 			deliveryPrice
 		}
@@ -2430,6 +2524,112 @@ router.get("/customer/detail", (req, res) => {
 	})
 
 })
+
+
+router.get("/customer/measurements", async (req, res) => {
+
+	let cartData = JSON.parse(req.body.cartData);
+
+	let tempUserId = req.body.tempId
+
+	let products = cartData.map(el => Number(el.productId))
+
+	console.log(tempUserId, products)
+
+
+	try{
+
+		// Getting all coverages of products
+		let coverageList = await product.find({_id: {$in: products}}).select({name:1, coverage: 1}).exec()
+	
+	
+		// filtering out same coverage products and store inside coverage[]
+		let coverage = []
+		coverageList.map(el => {
+	
+			let present = false;
+	
+			for(item of coverage) {
+	
+				present = (function arraysEqual(a, b) {
+					if (a === b) return true;
+					if (a == null || b == null) return false;
+					if (a.length !== b.length) return false;
+	
+					for (var i = 0; i < a.length; ++i) {
+						if (a[i] !== b[i]) return false;
+					}
+					return true;
+				})(el.coverage, item.coverage)
+	
+			}
+	
+			if(!present)
+				coverage.push({name: el.name, coverage: el.coverage})
+	
+		})
+
+		console.log(coverage)
+
+		// collecting dates of all products
+		let result = []
+		for(let el of coverage)
+		{
+
+			let productsWithCommonMeasurements = await product.find({"coverage":  el.coverage}).exec()
+			productsWithCommonMeasurements = productsWithCommonMeasurements.map(el => el._id)
+
+			// console.log(productsWithCommonMeasurements)
+
+			// last recorded measurement of similar coverage products
+			let lastSavedMeasurement = await order.findOne(
+				// Query:
+				{
+					"temp_id": mongoose.Types.ObjectId(tempUserId),
+					"product.id": {$in: productsWithCommonMeasurements},
+					"measurements": {$exists: true}
+				},
+				// Projection:
+				{
+					order_id: 1,
+					dates: 1
+				})
+				.sort({"dates.order": -1, "order_id": -1, "_id": -1})
+				.exec()
+
+			let tempResult = {
+				name: el.name,
+				date: lastSavedMeasurement?dateFns.format(new Date(lastSavedMeasurement.dates.order), "dd-MM-yyyy"):null
+			}
+
+			if(lastSavedMeasurement === null) {
+				res.status(404).json({
+					error_msg: `measurement of "${el.name}" not found`
+				})
+				throw `measurement of ProductId: ${el.id} not found`
+			}
+
+			// console.log(lastSavedMeasurement)
+			// console.log(tempResult)
+
+			result.push(tempResult)
+
+		}
+
+		res.status(200).json({
+			result
+		})
+
+	}
+	catch(err) {
+
+		if(typeof err != "string")
+			res.status(500).json(handler.internalServerError)
+
+	}
+
+})
+
 
 
 router.get("/customer/tempDetails", (req, res) => {

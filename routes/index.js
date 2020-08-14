@@ -36,6 +36,22 @@ var model = mongoose.model("tests", schema);
 router.get("/", (req,res) => res.render("index", {title: "API"}))
 
 
+router.get("/practice", (req, res) => {
+
+	let x;
+	let y=null;
+
+	let obj = {
+		id: 1,
+		name: x,
+		rollNo: y
+	}
+
+	res.json(obj)
+
+})
+
+
 router.post("/practice", (req, res) => {
 
 	// const fs = require('fs');
