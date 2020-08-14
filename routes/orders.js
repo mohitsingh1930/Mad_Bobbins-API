@@ -2033,7 +2033,7 @@ router.post("/customer/create", async (req, res) => {
 					user_id: orders_details.userId,
 					tailor_id: orders_details.tailorId,
 					"dates.pickup": handler.toDate(orders_details.pickupDate),
-					pickup_demand: orders_details.pickupType ?? "measurements",
+					pickup_demand: orders_details.pickupType || "measurements",
 					// addresss_id: product.addresss_id,
 					arrangement_id: orders_details.pickupSlotId,		//schedule id
 					payment: {
