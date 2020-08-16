@@ -16,7 +16,7 @@ router.post("/", (req, res) => {
 
 		if(resolve.length === 0) {
 
-			res.status(400).json({
+			res.status(406).json({
 				error_msg: "OrderId Not Found"
 			})
 

@@ -2391,7 +2391,7 @@ router.get("/customer/detail", (req, res) => {
 					price: "$payment.current_price",
 					addons: "$addons"
 				},
-				review: "$review",
+				review: {$arrayElemAt: ["$review", 0]},
 				return: "$return",
 				temp_user: {$arrayElemAt: ["$temp_user", 0]},
 				dates: "$dates",
@@ -2408,7 +2408,7 @@ router.get("/customer/detail", (req, res) => {
 	]).exec()
 	.then(resolve => {
 
-		console.log(resolve.filter(el => el.status != "returned" || resolve[0].status == "returned").map(el => el._id))
+		// console.log(resolve[0].review)
 
 		if(resolve.length === 0) {
 			res.status(404).json({
@@ -2425,11 +2425,13 @@ router.get("/customer/detail", (req, res) => {
 
 
 		// checking review if present
-		let review = resolve.find(el => el.review.length >= 1)
+		let review = resolve.find(el => el.review)?.review
+
+		console.log("Review", review)
 
 		review = {
-			rating: review?.rating===undefined?null:review.rating,
-			msg: review?.message===undefined?null:review.rating
+			rating: review?.rating===undefined?null:review.rating.toPrecision(2),
+			msg: review?.message===undefined?null:review.message
 		}
 
 

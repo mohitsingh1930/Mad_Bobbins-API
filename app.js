@@ -47,7 +47,7 @@ app.use('/orders', require("./routes/orders"))
 app.use('/workers', require("./routes/workers"))
 app.use("/schedules", require("./routes/schedules"))
 app.use("/products", require("./routes/products"))
-
+app.use("/reviews", require("./routes/reviews"))
 
 // app.use((req, res, next) => {
 
