@@ -175,38 +175,13 @@ var model = mongoose.model("test", schema);
 // .then(resolve => console.log(resolve))
 // .catch(err => console.log(err))
 
-review.aggregate([
-	{
-		$group: {
-			_id: "$tailor_id",
-			sum_of_ratings: {
-				$sum: "$rating"
-			},
-			total_ratings: {
-				$sum: 1
-			}
-		}
-	}
-]).exec()
+require("./models/users").user.find({}).exec()
 .then(resolve => {
-	console.log(resolve)
-
-	let ratings = [
-		"5ee38467844a883ee54a1607",
-		"5ee38f7b844a883ee54a1610",
-		"5ee38ff3844a883ee54a1612",
-		"5f0962dd7e723a2ddcc27e41"
-	].map(el => {
-
-		let review = resolve.find(el2 => el2.tailor[0].id===el) ?? {sum_of_ratings: 0, total_ratings: 0}
-
-		return ((4*10 + review.sum_of_ratings)/(10 + review.total_ratings)).toPrecision(2)
-
-	})
-
-	console.log(ratings)
-
-
+	console.log(resolve.map(el => new Object({
+		dateJoined: dateFns.format(new Date(el.date_joined), "dd-MM-yyyy HH:mm"),
+		phoneNumber: el.contact.phone_no[0],
+		firebaseId: el.firebase_id
+	})))
 })
 
 // order.find({_id: {$in: ["5f1d132008f7d60017f76c35"]}}).select({measurements: 1})

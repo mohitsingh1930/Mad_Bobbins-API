@@ -14,29 +14,6 @@ var temp_user = require("../models/temp_users")
 var handler = require("../errorHandlers")
 
 
-// mongoose.connect("mongodb://localhost/ARLORS", {useNewUrlParser: true})
-
-
-// multer
-// const multer = require("multer")
-// const { product } = require("../models/products")
-// const { resolveSoa } = require("dns")
-// const upload = multer(
-// 	{
-// 		storage: multer.diskStorage({
-// 			destination: function(req, file, cb) {
-// 				cb(null, __dirname+"/../formUploads/orderProducts")
-// 			},
-// 			filename: function(req, file, cb) {
-// 				let randomString = random({length: 15})
-// 				cb(null, randomString +"."+ file.mimetype)
-// 			}
-// 		})
-// 	}
-// )
-
-
-// scope: tailor
 
 router.get("/tailor/status/", (req, res) => {
 
@@ -1620,7 +1597,7 @@ router.get("/delivery/pending", (req, res) => {
 	]).exec()
 	.then((resolve) => {
 
-		// console.log("Result:", resolve[0]._id.tailor.contact.address);
+		console.log("Result:", resolve[0]._id.tailor.contact.address);
 
 		resolve = resolve.map(order => new Object({
 			orderId: order._id.order_id,
@@ -1629,7 +1606,7 @@ router.get("/delivery/pending", (req, res) => {
 			// userId: order._id.temp_user._id,
 			userName: order._id.temp_user.name,
 			tailorName: order._id.tailor.name,
-			tailorAddress: order._id.tailor.contact.address[0].text,
+			tailorAddress: order._id.tailor.contact.address.text,
 			tailorPhone_no: order._id.tailor.contact.phone_no[0],
 			deliveryDate: dateFns.format(dateFns.addDays(new Date(order._id.dates.pickup), order._id.tailor.max_days_to_complete), "dd-MM-yyyy"),
 			// userAge: order._id.temp_user.age,

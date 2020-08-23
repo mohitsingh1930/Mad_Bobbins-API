@@ -128,7 +128,7 @@ router.get("/details", (req, res) => {
 // tailors
 router.get("/tailor", (req, res) => {
 
-	tailor.aggregate([
+	let tailors = tailor.aggregate([
 		{
 			$lookup: {
 				from: "prices",
@@ -176,14 +176,38 @@ router.get("/tailor", (req, res) => {
 		{
 			$sort: {"name": 1}
 		}
-	])
-	.exec()
-	.then(resolve => {
+	]).exec()
 
-		console.log("result", resolve)
+	let tailorsReview = review.aggregate([
+		{
+			$group: {
+				_id: "$tailor_id",
+				sum_of_ratings: {
+					$sum: "$rating"
+				},
+				total_ratings: {
+					$sum: 1
+				}
+			}
+		}
+	]).exec()
+
+	Promise.all([tailors, tailorsReview])
+	.then(([tailors, reviews]) => {
+
+		console.log(tailors, reviews)
+
+		let result = tailors.map(element => {
+
+			let review = reviews.find(el => el._id===element.id) ?? {sum_of_ratings: 0, total_ratings: 0}
+			element.rating = ((4*10 + review.sum_of_ratings)/(10 + review.total_ratings)).toPrecision(2)
+
+			return element
+
+		})
 
 		res.status(200).json({
-			result: resolve
+			result: result
 		})
 
 	})
@@ -199,7 +223,7 @@ router.get("/tailor", (req, res) => {
 
 router.get("/tailor/detailedPrices", (req, res) => {
 
-	tailor.aggregate([
+	let tailorsWithPrices = tailor.aggregate([
 		{
 			'$lookup': {
 				'from': 'prices',
@@ -252,9 +276,25 @@ router.get("/tailor/detailedPrices", (req, res) => {
 		}
 	])
 	.exec()
-	.then(resolve => {
 
-		resolve = resolve.map(tailor => {
+	let tailorsReview = review.aggregate([
+		{
+			$group: {
+				_id: "$tailor_id",
+				sum_of_ratings: {
+					$sum: "$rating"
+				},
+				total_ratings: {
+					$sum: 1
+				}
+			}
+		}
+	]).exec()
+
+	Promise.all([tailorsWithPrices, tailorsReview])
+	.then(([tailors, reviews]) => {
+
+		tailors = tailors.map(tailor => {
 
 			let products = tailor.products;
 
@@ -303,9 +343,12 @@ router.get("/tailor/detailedPrices", (req, res) => {
 
 			}
 
+			let review = reviews.find(el => el._id===tailor._id.id) ?? {sum_of_ratings: 0, total_ratings: 0}
+			tailor.rating = ((4*10 + review.sum_of_ratings)/(10 + review.total_ratings)).toPrecision(2)
 
 			return {
 				name: tailor._id.name.split("(")[0],
+				rating: tailor.rating,
 				products: result
 			}
 
@@ -313,9 +356,10 @@ router.get("/tailor/detailedPrices", (req, res) => {
 
 		// Update!! When we have seperate designer prices
 		// removing category designer
-		resolve = resolve.map(el =>
+		resolve = tailors.map(el =>
 			new Object({
 				name: el.name,
+				rating: el.rating,
 				products: el.products.filter(product => product.category==="Simple")
 			})
 		)
